@@ -1,0 +1,47 @@
+# "v1.0.0" gibi bir etiket gönderildiğinde Ambar.exe'yi derler ve GitHub Releases'e yükler.
+name: Sürüm yayınla
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Ambar.exe derle
+        shell: pwsh
+        run: ./build.ps1
+
+      - name: Release oluştur ve exe'yi yükle
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Ambar ${{ github.ref_name }}
+          files: |
+            dist/Ambar.exe
+            dist/Ambar.exe.sha256
+          body: |
+            ## İndir
+            **[Ambar.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Ambar.exe)** dosyasını indirip çift tıklayın. Kurulum gerekmez; adb programın içindedir.
+
+            Windows "Bilgisayarınız korundu" uyarısı gösterirse **Ek bilgi → Yine de çalıştır** seçin.
+
+            SHA-256 özeti `Ambar.exe.sha256` dosyasındadır.
+
+      - name: Derleme çıktısını sakla (elle çalıştırmalar için)
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ambar
+          path: dist/

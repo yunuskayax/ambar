@@ -1,0 +1,20 @@
+# Yedekler kişisel veri içerir - asla depoya eklemeyin
+yedekler/
+*.ab
+*.bak
+*.crypt*
+
+# Google'ın adb araçları (ayrıca indirilir)
+platform-tools/
+
+# Derleme çıktıları
+build/
+dist/
+*.spec
+*.exe
+__pycache__/
+*.pyc
+
+# Çalışma logları
+*_log.txt
+*_hata.txt
