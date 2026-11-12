@@ -1,0 +1,1491 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ambar İnceleme</title>
+<link rel="icon" href="/icon.png">
+<style>
+:root{
+  --bg:#f3f7fb; --kart:#fff; --kenar:#dbe4ee; --kenar2:#e9eef4; --yazi:#1f2a37; --soluk:#6b7a8c;
+  --mavi:#1677d2; --mavi2:#0b5fae; --mavi-acik:#e8f2fc; --yesil:#22a35a; --kirmizi:#e5484d; --turuncu:#f59e0b;
+  --marka:#b45309; --golge:0 1px 2px rgba(16,24,40,.05);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font:13px/1.45 "Segoe UI",system-ui,-apple-system,Arial,sans-serif;color:var(--yazi);background:var(--bg);display:flex;flex-direction:column}
+button{font:inherit;cursor:pointer}
+input,select,textarea{font:inherit;color:inherit}
+a{color:var(--mavi);text-decoration:none}
+svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* ---- sekme çubuğu */
+.ust{display:flex;align-items:stretch;background:#fff;border-bottom:1px solid var(--kenar);height:34px;flex:none}
+.sekmeler{display:flex;overflow-x:auto;flex:1;min-width:0}
+.sekme{display:flex;align-items:center;gap:6px;padding:0 10px 0 12px;border-right:1px solid var(--kenar2);white-space:nowrap;
+  color:var(--soluk);cursor:pointer;max-width:240px;font-size:12.5px;position:relative}
+.sekme span{overflow:hidden;text-overflow:ellipsis}
+.sekme.aktif{color:var(--yazi);background:var(--bg)}
+.sekme.aktif::after{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:var(--mavi)}
+.sekme .kapat{border:0;background:none;color:var(--soluk);padding:2px;border-radius:3px;line-height:0}
+.sekme .kapat:hover{background:var(--kenar2);color:var(--yazi)}
+.sekme svg.i{font-size:15px}
+.marka{display:flex;align-items:center;gap:8px;padding:0 12px;border-left:1px solid var(--kenar2);font-weight:600;color:var(--marka)}
+.marka img{width:20px;height:20px}
+.marka button{border:0;background:none;color:var(--soluk);font-weight:400;padding:4px 6px;border-radius:4px}
+.marka button:hover{background:var(--kenar2);color:var(--yazi)}
+
+main{flex:1;overflow:auto;min-height:0}
+.sayfa{padding:14px 18px 40px}
+.kirinti{display:flex;align-items:center;gap:8px;font-size:17px;margin:2px 0 12px;color:var(--yazi)}
+.kirinti .ok{color:var(--soluk)}
+.kirinti .sag{margin-left:auto;display:flex;gap:6px}
+
+/* ---- kartlar */
+.kart{background:var(--kart);border:1px solid var(--kenar);border-radius:2px;margin-bottom:14px;box-shadow:var(--golge)}
+.sekmeli-baslik{display:flex;align-items:center;gap:22px;padding:0 14px;border-bottom:1px solid var(--kenar2);height:42px}
+.sekmeli-baslik .ac{border:0;background:none;color:var(--mavi);padding:0;line-height:0}
+.sekmeli-baslik .t{border:0;background:none;font-size:15px;color:var(--yazi);padding:10px 0;border-bottom:2px solid transparent}
+.sekmeli-baslik .t.aktif{color:var(--mavi);border-bottom-color:var(--mavi)}
+.sekmeli-baslik .sag{margin-left:auto;color:var(--mavi)}
+.kart-govde{padding:12px 16px}
+
+.bolum-baslik{display:flex;align-items:center;gap:10px;padding:0 14px;height:44px;border-bottom:1px solid var(--kenar2);cursor:pointer;user-select:none}
+.bolum-baslik .ad{font-size:16px;color:var(--mavi);border-bottom:2px solid var(--mavi);padding:9px 0}
+.bolum-baslik .say{color:var(--yesil);font-size:15px}
+.bolum-baslik svg{color:var(--mavi);transition:transform .15s}
+.kapali .bolum-baslik svg{transform:rotate(-90deg)}
+.kapali .doseme-izgara{display:none}
+
+/* ---- döşemeler */
+.doseme-izgara{display:grid;grid-template-columns:repeat(auto-fill,minmax(178px,1fr));gap:4px 10px;padding:14px 16px 16px}
+.doseme{display:flex;align-items:flex-start;gap:10px;padding:8px 8px;border-radius:4px;cursor:pointer;border:1px solid transparent;min-width:0}
+.doseme:hover{background:var(--mavi-acik);border-color:#cfe3f7}
+.doseme .ikon{width:36px;height:36px;display:grid;place-items:center;color:var(--mavi);font-size:34px;flex:none}
+.doseme .ikon.app{border-radius:8px;font-size:20px;color:#fff;font-weight:700;position:relative;overflow:hidden}
+.ikon.app img.simge{position:absolute;inset:0;width:100%;height:100%;background:#fff;object-fit:contain}
+.app-ad{display:flex;align-items:center;gap:8px}.app-ad img{width:22px;height:22px;border-radius:5px;flex:none}
+.app-ad .harf{width:22px;height:22px;border-radius:5px;flex:none;color:#fff;font-weight:700;font-size:12px;display:grid;place-items:center}
+.doseme .ad{font-size:13px;color:var(--yazi);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.doseme .say{font-size:12px;color:var(--soluk)}
+.doseme.bos{opacity:.5}
+.doseme .metin{min-width:0;padding-top:1px}
+.nokta{display:inline-block;width:7px;height:9px;border:1.5px solid var(--yesil);border-radius:1px;margin-left:5px;vertical-align:1px}
+
+/* ---- bilgi ağacı */
+.agac{display:grid;grid-template-columns:1fr 1fr;gap:4px 40px}
+.agac .grup{margin-bottom:6px}
+.agac .gb{display:flex;align-items:center;gap:6px;font-weight:700;padding:3px 0;cursor:pointer}
+.agac .gb svg{color:var(--mavi)}
+.agac .alt{padding-left:16px}
+.agac .alt .gb{font-weight:700}
+.agac table{border-collapse:collapse;margin-left:16px}
+.agac td{padding:2px 14px 2px 18px;vertical-align:top}
+.agac td:first-child{color:var(--soluk);white-space:nowrap;width:180px}
+.agac td.kaynak{color:var(--mavi);white-space:nowrap}
+.agac .kapali>table,.agac .kapali>.alt{display:none}
+.agac .kapali>.gb svg{transform:rotate(-90deg)}
+@media (max-width:900px){.agac{grid-template-columns:1fr}}
+
+.ozet-izgara{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.ozet-kutu{border:1px solid var(--kenar2);border-radius:4px;padding:10px 12px}
+.ozet-kutu b{display:block;font-size:20px;font-weight:600;color:var(--mavi2)}
+.ozet-kutu span{color:var(--soluk);font-size:12px}
+
+/* ---- tablolar */
+.arac{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--kenar2);flex-wrap:wrap}
+.arac h2{margin:0;font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px}
+.arac h2 .say{color:var(--soluk);font-weight:400;font-size:13px}
+.arac .bosluk{flex:1}
+.ara-kutu{display:flex;align-items:center;gap:6px;border:1px solid var(--kenar);border-radius:4px;padding:0 8px;background:#fff;height:30px;min-width:240px}
+.ara-kutu input{border:0;outline:0;flex:1;height:28px;background:none}
+.ara-kutu svg{color:var(--soluk)}
+select{height:30px;border:1px solid var(--kenar);border-radius:4px;background:#fff;padding:0 6px}
+.dugme{height:30px;border:1px solid var(--kenar);border-radius:4px;background:#fff;padding:0 12px;display:inline-flex;align-items:center;gap:6px;color:var(--yazi)}
+.dugme:hover{border-color:var(--mavi);color:var(--mavi)}
+.dugme.ana{background:var(--mavi);border-color:var(--mavi);color:#fff}
+.dugme.ana:hover{background:var(--mavi2)}
+.dugme:disabled{opacity:.5;cursor:default}
+
+.duzen{display:flex;min-height:0;height:calc(100vh - 34px - 112px)}
+.tablo-alan{flex:1;overflow:auto;min-width:0}
+table.veri{border-collapse:collapse;width:100%;font-size:12.5px}
+table.veri th{position:sticky;top:0;background:#f7fafd;text-align:left;font-weight:600;color:#3d4b5c;padding:7px 10px;
+  border-bottom:1px solid var(--kenar);white-space:nowrap;cursor:pointer;user-select:none;z-index:1}
+table.veri th .ok{color:var(--mavi);font-size:10px;margin-left:4px}
+table.veri td{padding:6px 10px;border-bottom:1px solid var(--kenar2);vertical-align:top;max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+table.veri td.uzun{white-space:normal;min-width:280px}
+table.veri td.uzun div{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+table.veri tr{cursor:pointer}
+table.veri tbody tr:hover{background:#f5f9fe}
+table.veri tr.secili{background:var(--mavi-acik)}
+td.yildiz{width:26px;color:var(--turuncu);text-align:center;padding-right:0}
+.rozet{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11.5px;background:#eef2f6;color:#3d4b5c}
+.rozet.Gelen{background:#e7f6ec;color:#17803d}.rozet.Giden{background:#e8f2fc;color:#0b5fae}
+.rozet.Cevapsız,.rozet.Reddedilen,.rozet.Engellenen,.rozet.Gönderilemedi{background:#fdecec;color:#c62828}
+.rozet.SMS{background:#eef0ff;color:#4338ca}.rozet.MMS{background:#f6ecff;color:#7e22ce}
+.dosya-ad{display:flex;align-items:center;gap:6px}
+.dosya-ad img{width:28px;height:28px;object-fit:cover;border-radius:3px;background:#eef2f6;flex:none}
+.sayfalama{display:flex;align-items:center;gap:8px;padding:8px 14px;border-top:1px solid var(--kenar2);color:var(--soluk);background:#fff}
+.bos-durum{padding:50px 20px;text-align:center;color:var(--soluk)}
+.bos-durum svg{font-size:42px;color:#b9c6d4;display:block;margin:0 auto 10px}
+
+/* ---- ayrıntı paneli */
+.ayrinti{width:380px;border-left:1px solid var(--kenar);overflow:auto;background:#fff;flex:none}
+.ayrinti .ust-b{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--kenar2);font-weight:600}
+.ayrinti .ust-b button{margin-left:auto}
+.ayrinti dl{margin:0;padding:10px 14px;display:grid;grid-template-columns:110px 1fr;gap:6px 10px}
+.ayrinti dt{color:var(--soluk)}
+.ayrinti dd{margin:0;word-break:break-word;white-space:pre-wrap}
+.onizleme{padding:10px 14px;border-bottom:1px solid var(--kenar2);text-align:center;background:#f7fafd}
+.onizleme img,.onizleme video{max-width:100%;max-height:320px;border-radius:3px}
+.onizleme audio{width:100%}
+.etiket-alan{padding:10px 14px;border-top:1px solid var(--kenar2);display:grid;gap:8px}
+.etiket-alan textarea{width:100%;min-height:60px;border:1px solid var(--kenar);border-radius:4px;padding:6px}
+
+/* ---- galeri */
+.galeri{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;padding:12px 14px}
+.galeri .oge{position:relative;aspect-ratio:1;background:#e9eef4;border-radius:3px;overflow:hidden;cursor:pointer;border:2px solid transparent}
+.galeri .oge:hover{border-color:var(--mavi)}
+.galeri img{width:100%;height:100%;object-fit:cover;display:block}
+.galeri .vid{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:30px;background:linear-gradient(transparent,rgba(0,0,0,.35))}
+.galeri .alt-yazi{position:absolute;left:0;right:0;bottom:0;padding:3px 6px;font-size:10.5px;color:#fff;background:rgba(0,0,0,.45);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.galeri .yildiz{position:absolute;top:4px;right:6px;color:var(--turuncu);text-shadow:0 0 3px #000}
+.isik{position:fixed;inset:0;background:rgba(10,15,25,.9);display:flex;z-index:50}
+.isik .resim{flex:1;display:grid;place-items:center;padding:20px;min-width:0}
+.isik .resim img,.isik .resim video{max-width:100%;max-height:calc(100vh - 40px)}
+.isik .yan{width:360px;background:#fff;overflow:auto}
+.isik .kapat-b{position:absolute;top:10px;left:14px;color:#fff;background:rgba(255,255,255,.12);border:0;border-radius:4px;padding:6px 10px}
+.isik .gez{position:absolute;top:50%;color:#fff;background:rgba(255,255,255,.12);border:0;border-radius:4px;padding:14px 10px;font-size:18px}
+
+/* ---- zaman çizelgesi */
+.zaman{padding:10px 18px}
+.gun{font-weight:600;color:var(--mavi2);margin:14px 0 6px;position:sticky;top:0;background:var(--bg);padding:4px 0;z-index:1}
+.olay{display:flex;gap:10px;align-items:flex-start;background:#fff;border:1px solid var(--kenar2);border-radius:4px;padding:8px 10px;margin-bottom:6px;cursor:pointer}
+.olay:hover{border-color:#cfe3f7;background:#fbfdff}
+.olay .saat{color:var(--soluk);width:58px;flex:none;font-variant-numeric:tabular-nums}
+.olay .tikon{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:15px;flex:none}
+.olay .tikon.cagri{background:#e7f6ec;color:#17803d}.olay .tikon.mesaj{background:#eef0ff;color:#4338ca}
+.olay .tikon.not{background:#fff6e5;color:#b45309}.olay .tikon.medya{background:#e8f2fc;color:#0b5fae}
+.olay .ic{min-width:0;flex:1}
+.olay .ic .b{font-weight:600}
+.olay .ic .m{color:var(--soluk);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.olay img{width:46px;height:46px;object-fit:cover;border-radius:3px}
+.secenekler{display:flex;gap:12px;align-items:center}
+.secenekler label{display:flex;gap:4px;align-items:center;cursor:pointer}
+
+/* ---- istatistik */
+.grafikler{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:14px;padding:14px}
+.grafik{background:#fff;border:1px solid var(--kenar);border-radius:3px;padding:12px 14px}
+.grafik h3{margin:0 0 10px;font-size:14px;font-weight:600}
+.cubuk{display:grid;grid-template-columns:150px 1fr 80px;align-items:center;gap:8px;margin:5px 0;font-size:12px}
+.cubuk .ad{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cubuk .bar{height:14px;background:#eef3f8;border-radius:2px;overflow:hidden}
+.cubuk .bar i{display:block;height:100%;background:var(--mavi);border-radius:2px}
+.cubuk .deger{text-align:right;color:var(--soluk);font-variant-numeric:tabular-nums}
+.sutunlar{display:flex;align-items:flex-end;gap:3px;height:140px;padding-top:10px}
+.sutunlar .s{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;height:100%;justify-content:flex-end;font-size:10px;color:var(--soluk)}
+.sutunlar .s i{width:100%;background:var(--mavi);border-radius:2px 2px 0 0;min-height:1px}
+.sutunlar .s i.m{background:#8b5cf6}
+
+/* ---- ana sayfa */
+.cihaz-kartlari{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}
+.cihaz-kart{background:#fff;border:1px solid var(--kenar);border-radius:4px;padding:16px;cursor:pointer;display:flex;gap:14px}
+.cihaz-kart:hover{border-color:var(--mavi);box-shadow:0 2px 10px rgba(22,119,210,.12)}
+.cihaz-kart .tel{font-size:44px;color:var(--mavi)}
+.cihaz-kart h3{margin:0 0 2px;font-size:16px}
+.cihaz-kart .alt{color:var(--soluk)}
+.cip{display:inline-block;background:var(--mavi-acik);color:var(--mavi2);border-radius:10px;padding:1px 8px;font-size:11.5px;margin:6px 4px 0 0}
+
+.wa-hesap{border:1px solid var(--kenar);border-radius:4px;margin:12px 14px;background:#fff}
+.wa-hesap h3{margin:0;padding:10px 14px;border-bottom:1px solid var(--kenar2);font-size:14px;display:flex;align-items:center;gap:8px}
+.wa-hesap .ic{display:grid;grid-template-columns:1fr 1fr;gap:0}
+.wa-hesap .ic>div{padding:10px 14px}
+.wa-hesap .ic>div+div{border-left:1px solid var(--kenar2)}
+.uyari{margin:12px 14px;padding:10px 14px;border-left:4px solid var(--turuncu);background:#fff7ed;border-radius:3px}
+.bilgi{margin:12px 14px;padding:10px 14px;border-left:4px solid var(--mavi);background:#eff6ff;border-radius:3px}
+
+.yukleniyor{display:flex;flex-direction:column;align-items:center;gap:12px;padding:80px;color:var(--soluk)}
+.donen{width:34px;height:34px;border:3px solid var(--kenar);border-top-color:var(--mavi);border-radius:50%;animation:don 0.8s linear infinite}
+@keyframes don{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:18px;right:18px;background:#1f2a37;color:#fff;padding:10px 14px;border-radius:4px;z-index:60;opacity:0;transition:opacity .2s}
+.toast.goster{opacity:1}
+.not-alan textarea{width:100%;min-height:180px;border:1px solid var(--kenar);border-radius:4px;padding:10px}
+.hakkinda{position:fixed;inset:0;background:rgba(10,15,25,.45);display:grid;place-items:center;z-index:70}
+.hakkinda>div{background:#fff;border-radius:6px;padding:26px 30px;width:420px;text-align:center}
+.hakkinda img{width:72px}
+.pencere>div{text-align:left;width:600px;max-width:calc(100vw - 32px)}
+.pencere h2{margin:0 0 4px;font-size:18px}
+.pencere .aciklama{color:var(--soluk);margin:0 0 16px}
+.pencere label.b{display:block;font-weight:600;margin-bottom:4px}
+.pencere input[type=text]{width:100%;height:32px;border:1px solid var(--kenar);border-radius:4px;padding:0 8px;margin-bottom:14px}
+.pencere .secim{display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border:1px solid var(--kenar2);border-radius:4px;margin-bottom:6px;cursor:pointer}
+.pencere .secim:hover{border-color:#cfe3f7;background:#fbfdff}
+.pencere .secim small{display:block;color:var(--soluk)}
+.pencere .alt-d{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.ilerleme{height:6px;background:#eef3f8;border-radius:3px;overflow:hidden;margin-top:6px}
+.ilerleme i{display:block;height:100%;width:0;background:var(--mavi);transition:width .3s}
+/* ---- dışa aktarma sihirbazı */
+.sih-arka{position:fixed;inset:0;background:rgba(10,15,25,.45);display:grid;place-items:center;z-index:80}
+.sih{background:#fff;width:min(1180px,calc(100vw - 24px));height:min(860px,calc(100vh - 24px));display:flex;flex-direction:column;border-radius:4px;box-shadow:0 10px 40px rgba(0,0,0,.25)}
+.sih-ust{display:flex;align-items:center;gap:8px;padding:0 6px 0 14px;height:40px;background:#faf3f3;border-bottom:1px solid var(--kenar2);font-size:14px}
+.sih-ust .kapat-x{margin-left:auto;border:0;background:none;padding:8px;color:var(--soluk);font-size:16px}
+.sih-ust .kapat-x:hover{color:var(--yazi);background:var(--kenar2)}
+.sih-govde{flex:1;display:flex;min-height:0}
+.sih-nav{width:250px;border-right:1px solid var(--kenar);padding:4px 0;flex:none;overflow:auto}
+.sih-nav button{display:flex;align-items:center;gap:12px;width:100%;border:0;background:none;padding:10px 14px;font-size:15px;color:var(--yazi);text-align:left}
+.sih-nav button svg{font-size:22px;color:var(--mavi2)}
+.sih-nav button:hover{background:var(--mavi-acik)}
+.sih-nav button.aktif{background:#cfe3f7}
+.sih-icerik{flex:1;overflow:auto;padding:22px 36px}
+.sih-icerik h1{font-size:24px;font-weight:400;margin:0 0 6px}
+.sih-icerik .ack{color:var(--soluk);font-size:14px;margin:0 0 18px}
+.sih-iki{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.kutu{border:1px solid var(--kenar);border-radius:2px;display:flex;flex-direction:column;min-height:0}
+.kutu-b{padding:8px 10px;border-bottom:1px solid var(--kenar2);font-size:14px}
+.kutu-b label{display:flex;gap:8px;align-items:center;cursor:pointer}
+.kutu-i{height:330px;overflow:auto;padding:4px 0}
+.sih .oge{display:flex;align-items:center;gap:9px;padding:4px 10px;cursor:pointer;font-size:14px}
+.sih .oge:hover{background:#f5f9fe}
+.sih .oge svg{font-size:19px;color:var(--mavi)}
+.sih .oge .ad{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sih .oge .say{color:var(--yesil);font-variant-numeric:tabular-nums}
+.sih .oge.g svg{color:var(--yazi);font-size:15px}
+.sih .grup .alt{padding-left:24px;border-left:1px dotted var(--kenar);margin-left:16px}
+.sih input[type=checkbox]{width:16px;height:16px;accent-color:var(--mavi2);flex:none}
+.uik{width:20px;height:20px;border-radius:4px;color:#fff;display:grid;place-items:center;font-size:11px;font-weight:700;flex:none}
+.sih-form{margin-top:18px;display:grid;gap:12px}
+.sih-satir{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+.sih .alan{display:flex;flex-direction:column;gap:4px;color:var(--soluk);font-size:14px}
+.sih .alan input[type=text],.sih .alan input[type=datetime-local],.sih .alan select,.sih .alan textarea{border:0;border-bottom:1px solid #b8c4d2;
+  font-size:15px;color:var(--yazi);padding:5px 4px;background:none;border-radius:0;height:auto;outline:0}
+.sih .alan textarea{border:1px solid #b8c4d2;border-radius:3px;resize:vertical}
+.sih .alan input:focus,.sih .alan select:focus,.sih .alan textarea:focus{border-color:var(--mavi)}
+.sih .alan input[type=color]{width:70px;height:32px;border:1px solid var(--kenar);padding:2px;background:#fff}
+.sih .not{font-size:12.5px;margin-top:6px;line-height:1.4}
+.klasor-sec{display:flex;gap:8px;align-items:flex-end}
+.kok-satir{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.kok-satir span{flex:1;min-width:0;word-break:break-all}
+.klasor-sec input{flex:1;min-width:0;border:0;border-bottom:1px solid #b8c4d2;font-size:15px;color:var(--yazi);padding:5px 4px;outline:0}
+.klasor-sec input:focus{border-color:var(--mavi)}
+.klasor-sec .dugme{flex:none}
+.anahtarlar{display:grid;gap:10px}
+.anahtar{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14.5px;color:var(--yazi)}
+.anahtar input{display:none}
+.anahtar i{width:42px;height:22px;border-radius:11px;background:#d5dbe3;position:relative;flex:none;transition:background .15s}
+.anahtar i::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .15s}
+.anahtar input:checked+i{background:var(--mavi2)}
+.anahtar input:checked+i::after{left:23px}
+.logo-alan{display:flex;gap:20px;align-items:center}
+.logo-on{width:240px;height:110px;border:1px dashed var(--kenar);display:grid;place-items:center;background:#fafbfc}
+.logo-on img{max-width:220px;max-height:96px}
+.soluk{color:var(--soluk)}
+.sih-alt{display:flex;align-items:center;gap:10px;padding:12px 18px;border-top:1px solid var(--kenar2);background:#fafbfc}
+.sih-alt .dugme{height:34px;padding:0 22px;font-size:14px}
+.sih-durum{flex:1;min-width:0;color:var(--soluk)}
+.sih-durum #sh-durum{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.olay-izgara{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:40px}
+.olay-baslik{font-weight:700;margin:2px 0 10px;font-size:14px}
+.olay-satir{display:grid;grid-template-columns:190px 1fr 34px;gap:10px;align-items:center;margin-bottom:6px}
+.olay-satir label.olay-ad{color:var(--soluk)}
+.olay-satir input,.olay-satir textarea{height:30px;border:1px solid var(--kenar);border-radius:4px;padding:0 8px;font:inherit;background:#fff;width:100%}
+.olay-satir textarea{height:auto;padding:6px 8px;resize:vertical}
+.olay-satir input.olay-ad{font-weight:600}
+.olay-satir .olay-sil{height:30px;padding:0 8px}
+.olay-ozet{border-collapse:collapse}.olay-ozet td{padding:3px 14px 3px 0;vertical-align:top}.olay-ozet td:first-child{color:var(--soluk);white-space:nowrap}
+@media (max-width:1000px){.olay-izgara{grid-template-columns:1fr}}
+/* ---- WhatsApp sohbet görüntüleyici */
+.wa-duzen{display:flex;height:calc(100vh - 34px);min-height:0}
+.wa-liste{width:360px;flex:none;border-right:1px solid var(--kenar);background:#fff;display:flex;flex-direction:column;min-height:0}
+.wa-liste-ust{padding:10px 12px;border-bottom:1px solid var(--kenar2)}
+#wa-sohbetler{overflow:auto;flex:1}
+.wa-oge{display:flex;gap:10px;padding:9px 12px;cursor:pointer;border-bottom:1px solid #f0f2f5}
+.wa-oge:hover{background:#f5f6f6}.wa-oge.secili{background:#e9edef}
+.wa-av{width:42px;height:42px;border-radius:50%;background:#dfe5e7;color:#54656f;display:grid;place-items:center;font-weight:600;flex:none;font-size:13px}
+.wa-av.g{background:#cfe9dd;color:#128c7e;font-size:20px}
+.wa-oge-ic{min-width:0;flex:1}
+.wa-oge-ic .wa-u{display:flex;justify-content:space-between;gap:6px}.wa-oge-ic .wa-u b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.wa-oge-ic .wa-u span{color:var(--soluk);font-size:11px;flex:none}
+.wa-oge-ic .wa-a{display:flex;justify-content:space-between;gap:6px;color:var(--soluk);font-size:12px}
+.wa-oge-ic .wa-a span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wa-oge-ic .wa-a i{font-style:normal;background:#25d366;color:#fff;border-radius:9px;padding:0 6px;font-size:10.5px;flex:none}
+.wa-sohbet{flex:1;display:flex;flex-direction:column;min-width:0;background:#efeae2}
+.wa-sohbet-ust{display:flex;gap:10px;align-items:center;padding:8px 14px;background:#f0f2f5;border-bottom:1px solid var(--kenar2)}
+.wa-akis{flex:1;overflow:auto;padding:12px 6% 20px}
+.wa-gun{text-align:center;margin:10px 0}.wa-gun span{background:#fff;color:#54656f;border-radius:6px;padding:3px 10px;font-size:11.5px;box-shadow:0 1px .5px rgba(0,0,0,.13)}
+.wa-sistem{text-align:center;margin:6px auto;max-width:70%;background:#fff5c4;color:#54656f;border-radius:6px;padding:4px 10px;font-size:12px}
+.wa-b{max-width:65%;width:fit-content;background:#fff;border-radius:8px;padding:6px 9px 4px;margin:3px 0;box-shadow:0 1px .5px rgba(0,0,0,.13);position:relative}
+.wa-b.ben{background:#d9fdd3;margin-left:auto}
+.wa-kim{color:#1f7aec;font-weight:600;font-size:12px;margin-bottom:2px}
+.wa-metin{white-space:pre-wrap;word-break:break-word}
+.wa-zaman{text-align:right;color:#667781;font-size:10.5px;margin-top:2px}
+.wa-b img{max-width:280px;max-height:320px;border-radius:6px;display:block}
+.wa-b video{max-width:300px;border-radius:6px;display:block}.wa-b audio{width:260px}
+.wa-belge{display:flex;gap:6px;align-items:center;background:#f5f6f6;border-radius:6px;padding:8px}
+.gorunum-sec{display:inline-flex;border:1px solid var(--kenar);border-radius:4px;overflow:hidden;flex:none}
+.gorunum-sec button{border:0;background:#fff;padding:5px 12px;font:inherit;cursor:pointer;display:flex;gap:6px;align-items:center;color:var(--yazi)}
+.gorunum-sec button+button{border-left:1px solid var(--kenar)}
+.gorunum-sec button.aktif{background:var(--secili, #dbe9fb);color:#0b4f9c;font-weight:600}
+.gorunum-sec svg{width:15px;height:15px}
+.wa-av.harf{color:#fff;font-size:16px}
+.wa-b .alt-bilgi{display:flex;gap:6px;justify-content:flex-end;align-items:center;color:#667781;font-size:10.5px;margin-top:2px}
+.wa-b .alt-bilgi .kyn{border:1px solid #c7d0d6;border-radius:3px;padding:0 4px;font-size:9.5px}
+.wa-b .alt-bilgi .uyar{color:#c0392b}
+.wa-b.hedef{outline:2px solid #f5a623;outline-offset:2px}
+.wa-b.etiketli{border-left:3px solid #f5a623}
+.wa-b mark{background:#ffe58a;padding:0}
+.wa-oge-ic .wa-a i.gri{background:#c7d0d6;color:#41525d}
+.wa-medya-yok{color:#667781;font-size:12px}.wa-medya-yok span{font-size:11px}
+.metin-on{text-align:left;white-space:pre-wrap;word-break:break-word;max-height:360px;overflow:auto;background:#fff;border:1px solid var(--kenar2);padding:8px;font:12px Consolas,monospace;margin:0}
+.onizleme iframe{width:100%;height:420px;border:1px solid var(--kenar2)}
+@media (max-width:900px){.sih-iki,.sih-satir{grid-template-columns:1fr}.sih-nav{width:64px}.sih-nav span{display:none}}
+</style>
+</head>
+<body>
+<div class="ust">
+  <div class="sekmeler" id="sekmeler"></div>
+  <div class="marka"><img src="/icon.png" alt="">Ambar İnceleme
+    <button onclick="hakkinda()" title="Hakkında">Hakkında</button></div>
+</div>
+<main id="ana"></main>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+// ======================================================================= yardımcılar
+const $ = (s, k = document) => k.querySelector(s);
+const esc = s => s == null ? "" : String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const P = (d) => d.join("");
+const IK = {
+  liste:'<path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>',
+  sim:'<path d="M7 3h7l5 5v13H7z"/><rect x="9.5" y="11" width="7" height="7" rx="1"/><path d="M13 11v7M9.5 14.5h7"/>',
+  cip:'<rect x="5" y="5" width="14" height="14" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/>',
+  ev:'<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/>',
+  tel:'<rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/>',
+  uygulama:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 17l4-10 4 10M9.5 13.5h5"/>',
+  cagri:'<path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2"/>',
+  dosya:'<path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M3 10h18"/>',
+  anahtar:'<circle cx="8" cy="8" r="4"/><path d="M11 11l9 9M16 16l2-2M18 18l2-2"/>',
+  kisi:'<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/>',
+  mesaj:'<path d="M21 12a8 8 0 01-11.6 7.1L4 20l1.1-4.4A8 8 0 1121 12z"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01"/>',
+  rapor:'<path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h6"/><path d="M14 3l5 5h-5z"/><path d="M8 9h4M8 13h7M8 17h3"/><circle cx="17.5" cy="17.5" r="3.5"/><path d="M17.5 16v1.6l1 .8"/>',
+  not:'<path d="M5 3h10l4 4v14H5z"/><path d="M14 3v5h5M9 12h6M9 16h4"/>',
+  ara:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.8-4.8"/>',
+  istatistik:'<rect x="3" y="4" width="18" height="12" rx="1"/><path d="M7 13l3-3 3 2 4-4M8 20h8M12 16v4"/>',
+  zaman:'<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',
+  etiket:'<path d="M20 12l-8 8-9-9V3h8z"/><circle cx="7.5" cy="7.5" r="1.3"/>',
+  foto:'<rect x="3" y="5" width="18" height="15" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M21 17l-5-5-9 8"/>',
+  kamera:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+  kapat:'<path d="M6 6l12 12M18 6L6 18"/>',
+  asagi:'<path d="M6 9l6 6 6-6"/>',
+  sag:'<path d="M9 6l6 6-6 6"/>',
+  yildiz:'<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>',
+  oynat:'<path d="M8 5v14l11-7z" fill="currentColor"/>',
+  yenile:'<path d="M20 11a8 8 0 10-2.3 5.7"/><path d="M20 4v7h-7"/>',
+  indir:'<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
+  ayar:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.6 1.6 0 00-1.8-.3 1.6 1.6 0 00-1 1.5V21a2 2 0 01-4 0v-.1a1.6 1.6 0 00-1-1.5 1.6 1.6 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.6 1.6 0 00.3-1.8 1.6 1.6 0 00-1.5-1H3a2 2 0 010-4h.1a1.6 1.6 0 001.5-1 1.6 1.6 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.6 1.6 0 001.8.3H9a1.6 1.6 0 001-1.5V3a2 2 0 014 0v.1a1.6 1.6 0 001 1.5 1.6 1.6 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.6 1.6 0 00-.3 1.8V9a1.6 1.6 0 001.5 1H21a2 2 0 010 4h-.1a1.6 1.6 0 00-1.5 1z"/>',
+};
+const ik = (ad, ek = "") => `<svg class="i ${ek}" viewBox="0 0 24 24">${IK[ad] || ""}</svg>`;
+
+async function api(yol, govde) {
+  const r = await fetch(yol, govde ? {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(govde)} : {});
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.hata || r.statusText);
+  return j;
+}
+const qs = o => Object.entries(o).filter(([, v]) => v !== "" && v != null).map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join("&");
+const iki = n => String(n).padStart(2, "0");
+function tarih(ms, saniye = true) {
+  if (ms == null || ms === "") return "";
+  const d = new Date(+ms);
+  if (isNaN(d)) return "";
+  return `${iki(d.getDate())}.${iki(d.getMonth() + 1)}.${d.getFullYear()} ${iki(d.getHours())}:${iki(d.getMinutes())}${saniye ? ":" + iki(d.getSeconds()) : ""}`;
+}
+// Android ön yüklü uygulamalar için 1970 bildirir; dizinde 0 olarak saklanır
+const kurulum = (ms, alan) => ms === 0 ? (alan === "ilk_yukleme" ? "Ön yüklü (tarih yok)" : "Güncellenmedi (fabrika sürümü)") : tarih(ms, false);
+const gunAdi = ms => new Date(+ms).toLocaleDateString("tr-TR", {weekday: "long", day: "numeric", month: "long", year: "numeric"});
+function sure(s) { s = +s || 0; const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60); return (h ? h + ":" + iki(m) : m) + ":" + iki(s % 60); }
+function boyut(n) { n = +n || 0; const b = ["B", "KB", "MB", "GB", "TB"]; let i = 0; while (n >= 1024 && i < 4) { n /= 1024; i++; } return (i ? n.toFixed(1) : n) + " " + b[i]; }
+const sayi = n => (+n || 0).toLocaleString("tr-TR");
+function toast(m) { const t = $("#toast"); t.textContent = m; t.classList.add("goster"); clearTimeout(t._z); t._z = setTimeout(() => t.classList.remove("goster"), 2200); }
+const dosyaUrl = (cid, c, yol, indir) => `/dosya?${qs({cihaz: cid, c, yol, indir: indir ? 1 : ""})}`;
+const PDF = /\.pdf$/i, METIN = /\.(txt|log|csv|json|xml|html?|md|ini|cfg|conf|vcf|ics|js|css|properties|srt|nomedia)$/i;
+const RESIM = /\.(jpe?g|png|gif|webp|bmp)$/i, VIDEO = /\.(mp4|webm|3gp|mkv|mov|m4v)$/i, SES = /\.(mp3|m4a|aac|opus|ogg|wav|amr|flac)$/i;
+
+// ======================================================================= durum ve sekmeler
+const D = {cihazlar: [], kok: "", sekmeler: [], aktif: null, ozet: {}};
+function sekmeAc(s) {
+  const varolan = D.sekmeler.find(x => x.anahtar === s.anahtar);
+  if (varolan) { D.aktif = varolan.anahtar; Object.assign(varolan, s.guncelle ? s : {}); }
+  else { D.sekmeler.push(s); D.aktif = s.anahtar; }
+  ciz();
+}
+function sekmeKapat(a, e) {
+  e && e.stopPropagation();
+  const i = D.sekmeler.findIndex(x => x.anahtar === a);
+  if (i < 0 || D.sekmeler[i].sabit) return;
+  D.sekmeler.splice(i, 1);
+  if (D.aktif === a) D.aktif = (D.sekmeler[i] || D.sekmeler[i - 1] || D.sekmeler[0]).anahtar;
+  ciz();
+}
+// Sekme anahtarı JSON filtre içerebilir ({"uygulama":"..."}); onclick içine gömülmez, data-a'dan okunur.
+function sekmeSec(a) { D.aktif = a; ciz(); }
+function sekmeleriCiz() {
+  $("#sekmeler").innerHTML = D.sekmeler.map(s => `
+    <div class="sekme ${s.anahtar === D.aktif ? "aktif" : ""}" data-a="${esc(s.anahtar)}" onclick="sekmeSec(this.dataset.a)"
+      onauxclick="event.button === 1 && sekmeKapat(this.dataset.a, event)" title="${esc(s.baslik)}">
+      ${ik(s.ikon || "dosya")}<span>${esc(s.baslik)}</span>
+      ${s.sabit ? "" : `<button class="kapat" title="Kapat" onclick="sekmeKapat(this.parentNode.dataset.a, event)">${ik("kapat")}</button>`}
+    </div>`).join("");
+}
+function ciz() {
+  sekmeleriCiz();
+  const s = D.sekmeler.find(x => x.anahtar === D.aktif);
+  const ana = $("#ana");
+  ana.scrollTop = 0;
+  if (!s) return;
+  ({ev: anaSayfa, cihaz: cihazSayfasi, bolum: bolumSayfasi, galeri: galeriSayfasi, zaman: zamanSayfasi,
+    istatistik: istatistikSayfasi, ara: aramaSayfasi, etiketler: etiketSayfasi, whatsapp: whatsappSayfasi, wasohbet: waSohbetSayfasi,
+    rapor: raporSayfasi})[s.tur](ana, s);
+}
+const yukleniyor = (m = "Yükleniyor...") => `<div class="yukleniyor"><div class="donen"></div><div id="yuk-m">${esc(m)}</div></div>`;
+
+// ======================================================================= ana sayfa (cihazlar)
+async function anaSayfa(ana) {
+  ana.innerHTML = yukleniyor();
+  const j = await api("/api/cihazlar");
+  D.cihazlar = j.cihazlar; D.kok = j.kok; D.surum = j.surum; D.web = j.web; D.yapimci = j.yapimci;
+  D.portable = j.portable; D.rapor = j.rapor; D.ambx = j.ambx;
+  ana.innerHTML = `<div class="sayfa">
+    <div class="kirinti"><span class="ok">${ik("sag")}</span>Cihazlar
+      <div class="sag">${D.portable ? "" : `<button class="dugme" onclick="yenileCihazlar()">${ik("yenile")} Yeniden tara</button>`}</div></div>
+    ${D.portable ? `<div class="bilgi kok-satir" style="margin:0 0 14px"><span>Portable rapor: <b>${esc(D.kok)}</b> ·
+      oluşturma ${esc((D.rapor.olusturma || "").replace("T", " "))} · ${esc(D.rapor.kapsam_adi || "")}
+      (${sayi(D.rapor.dosya_adet)} dosya) · Ambar v${esc(D.rapor.ambar_surum || "")}</span>
+      ${D.ambx ? `<span id="dogrula-durum" class="soluk" style="flex:none"></span><button class="dugme" id="dogrula">${ik("anahtar")} Bütünlüğü doğrula</button>` : ""}</div>`
+    : `<div class="bilgi kok-satir" style="margin:0 0 14px"><span>Yedek klasörü: <b>${esc(D.kok)}</b> · ${D.cihazlar.length} cihaz,
+      ${D.cihazlar.reduce((a, g) => a + g.cikarmalar.length, 0)} çıkarma</span>
+      <button class="dugme" id="kok-degistir">${ik("dosya")} Klasörü değiştir...</button></div>`}
+    ${D.cihazlar.length ? `<div class="cihaz-kartlari">${D.cihazlar.map(g => `
+      <div class="cihaz-kart" onclick="cihazAc('${g.id}')">
+        <div class="tel">${ik("tel")}</div>
+        <div><h3>${esc(g.baslik)}</h3>
+          <div class="alt">${esc([g.cihaz.marka, g.cihaz.model, g.cihaz.android && "Android " + g.cihaz.android].filter(Boolean).join(" · "))}</div>
+          <div class="alt">Son çıkarma: ${esc((g.son_tarih || "").replace("T", " "))}</div>
+          ${g.cikarmalar.map(c => `<span class="cip">${esc(c.tur_adi)}</span>`).join("")}
+        </div></div>`).join("")}</div>`
+    : `<div class="kart bos-durum">${ik("tel")}Bu klasörde Ambar yedeği bulunamadı.<br>Ambar ile yedek alın veya
+       <code>ambar.py -o &lt;klasör&gt; incele</code> ile başka bir klasör açın.</div>`}
+  </div>`;
+  const dg = $("#dogrula");
+  if (dg) dg.onclick = async () => {
+    dg.disabled = true;
+    await api("/api/dogrula", {});
+    const z = setInterval(async () => {
+      const d = await api("/api/dogrula_durum"), yaz = $("#dogrula-durum");
+      if (!yaz) { clearInterval(z); return; }
+      if (d.durum === "calisiyor") { yaz.textContent = `Doğrulanıyor... %${d.yuzde}`; return; }
+      clearInterval(z); dg.disabled = false;
+      if (d.durum === "hata") { yaz.innerHTML = `<b style="color:var(--kirmizi)">${esc(d.mesaj)}</b>`; return; }
+      const ok = !d.hatali.length && d.tum_dosya !== false;
+      yaz.innerHTML = ok ? `<b style="color:var(--yesil)">Doğrulandı: ${sayi(d.oge)} öğe${d.tum_dosya ? " ve .sha256 özeti" : ""} eşleşiyor</b>`
+        : `<b style="color:var(--kirmizi)">UYUMSUZ: ${d.hatali.length} öğe${d.tum_dosya === false ? ", dosya özeti (.sha256) tutmuyor" : ""}</b>`;
+    }, 600);
+  };
+  const kd = $("#kok-degistir");
+  if (kd) kd.onclick = async () => {
+    kd.disabled = true; kd.lastChild.textContent = " Klasör seçiliyor...";
+    try {
+      const j = await api("/api/klasor_sec", {baslangic: D.kok, baslik: "İncelenecek yedek klasörünü seçin"});
+      if (j.yol) {
+        const k = await api("/api/kok", {yol: j.yol});
+        D.sekmeler = D.sekmeler.filter(x => x.sabit); D.aktif = "ev"; D.ozet = {};   // eski klasörün sekmeleri kapanır
+        toast(`Yedek klasörü değişti: ${k.cihaz} cihaz bulundu`);
+        ciz(); return;
+      }
+    } catch (e) { toast(e.message); }
+    kd.disabled = false; kd.lastChild.textContent = " Klasörü değiştir...";
+  };
+  adrestenAc();
+}
+// Adres çubuğundan doğrudan açma: #c=<cihaz>&b=<bölüm>&p=<panel>
+function adrestenAc() {
+  if (D._adresAcildi) return; D._adresAcildi = true;
+  const h = new URLSearchParams(location.hash.slice(1));
+  const c = h.get("c") || (D.portable && D.cihazlar.length === 1 ? D.cihazlar[0].id : null);
+  if (!c || !D.cihazlar.find(x => x.id === c)) return;
+  cihazAc(c);
+  if (h.get("p")) aktifSekme().panel = h.get("p");
+  if (h.get("b")) bolumAc(c, h.get("b"));
+  if (h.get("wa")) uygulamaAc(c, {paket: h.get("wa")});
+}
+async function yenileCihazlar() { await api("/api/cihazlar?yenile=1"); ciz(); }
+function cihazAc(cid) {
+  const g = D.cihazlar.find(x => x.id === cid);
+  sekmeAc({anahtar: "c-" + cid, tur: "cihaz", cid, baslik: g.baslik, ikon: "tel", panel: "cihaz"});
+}
+
+// ======================================================================= cihaz sayfası (Oxygen düzeni)
+async function ozetAl(cid, yeniden) {
+  const ana = $("#ana");
+  ana.innerHTML = yukleniyor("Yedekler dizinleniyor... (ilk açılışta büyük yedeklerde birkaç dakika sürebilir)");
+  const z = setInterval(async () => { try { const d = await api("/api/durum?cihaz=" + cid); if (d.ilerleme && $("#yuk-m")) $("#yuk-m").textContent = d.ilerleme; } catch (e) {} }, 700);
+  try { D.ozet[cid] = await api("/api/ozet?" + qs({cihaz: cid, yeniden: yeniden ? 1 : ""})); }
+  finally { clearInterval(z); }
+  return D.ozet[cid];
+}
+async function cihazSayfasi(ana, s) {
+  let o = D.ozet[s.cid];
+  try { if (!o) o = await ozetAl(s.cid); if (D.aktif !== s.anahtar) return; }
+  catch (e) { ana.innerHTML = `<div class="sayfa"><div class="uyari">${esc(e.message)}</div></div>`; return; }
+  const g = o.cihaz, n = o.sayilar;
+  const genel = [
+    ["uygulamalar", "Uygulamalar", "uygulama", n.uygulamalar],
+    ["cagrilar", "Çağrılar", "cagri", n.cagrilar],
+    ["dosyalar", "Dosyalar", "dosya", n.dosyalar],
+    ["hesaplar", "Hesaplar ve Şifreler", "anahtar", n.hesaplar],
+    ["kisiler", "Kişiler", "kisi", n.kisiler],
+    ["rehber", "Rehber", "kisi", n.rehber],
+    ["takvim", "Takvim", "zaman", n.takvim],
+    ["mesajlar", "Mesajlar", "mesaj", n.mesajlar],
+    ["notlar", "Notlar", "not", n.notlar],
+    ["sim_kartlari", "SIM kartlar", "sim", n.sim_kartlari],
+    ["sim_rehberi", "SIM rehberi", "kisi", n.sim_rehberi],
+    ...(n.sim_dosyalari ? [["sim_dosyalari", "SIM dosya sistemi", "cip", n.sim_dosyalari]] : []),
+    ["rapor", "Raporlar", "rapor", null],
+  ];
+  const analitik = [
+    ["ara", "Arama", "ara", null], ["istatistik", "İstatistik", "istatistik", null],
+    ["etiketler", "Etiketli deliller", "etiket", n.etiketler], ["galeri", "Fotoğraf ve video", "foto", n.fotograflar],
+    ["zaman", "Zaman çizelgesi", "zaman", n.zaman],
+  ];
+  const simgeli = new Set(o.simgeli || []);
+  const renk = p => p.startsWith("com.whatsapp") ? "#25d366" : p === "_cagri" ? "#22a35a" : p === "_sms" ? "#4f7cff"
+    : `hsl(${[...p].reduce((a, c) => a + c.charCodeAt(0), 0) % 360} 55% 48%)`;
+  const appIkon = u => u.paket.startsWith("com.whatsapp")
+    ? `<div class="ikon app" style="background:#25d366">${ik("mesaj")}</div>`
+    : u.paket === "_cagri" ? `<div class="ikon app" style="background:#22a35a">${ik("cagri")}</div>`
+    : u.paket === "_sms" ? `<div class="ikon app" style="background:#4f7cff">${ik("mesaj")}</div>`
+    : `<div class="ikon app" style="background:${renk(u.paket)}">${esc((u.ad || "?")[0].toUpperCase())}${simgeli.has(u.paket)
+        ? `<img class="simge" loading="lazy" src="${simgeUrl(s.cid, u.paket)}" onerror="this.remove()">` : ""}</div>`;
+  const doseme = ([ad, bas, ikon, say]) => `
+    <div class="doseme ${say === 0 ? "bos" : ""}" onclick="bolumAc('${s.cid}','${ad}')">
+      <div class="ikon">${ik(ikon)}</div>
+      <div class="metin"><div class="ad">${esc(bas)}</div><div class="say">${say == null ? "" : sayi(say)}</div></div></div>`;
+  const bolum = (ad, baslik, ic, adet) => `
+    <div class="kart" id="b-${ad}">
+      <div class="bolum-baslik" onclick="this.parentNode.classList.toggle('kapali')">${ik("asagi")}<span class="ad">${baslik}</span><span class="say">${adet}</span></div>
+      <div class="doseme-izgara">${ic}</div></div>`;
+  ana.innerHTML = `<div class="sayfa">
+    <div class="kirinti"><span class="ok">${ik("sag")}</span>${esc(g.baslik)}
+      <div class="sag"><button class="dugme" onclick="raporAc('${s.cid}')">${ik("rapor")} Yazdırılabilir özet</button>
+      <button class="dugme ana" title="HTML, PDF, Excel, CSV, JSON veya portable rapor olarak dışa aktar"
+        onclick="disaSihirbaz('${s.cid}')">${ik("indir")} Dışa aktar</button>
+      ${D.portable ? "" : `<button class="dugme" title="Dizini yeniden oluştur" onclick="yenidenDizinle('${s.cid}')">${ik("yenile")} Yeniden dizinle</button>`}</div></div>
+    ${D.portable && D.rapor && (D.rapor.eksik_dosya > 0 || (D.rapor.eksik_dosya == null && D.rapor.kapsam !== "tum")) ? `<div class="uyari" style="margin:0 0 14px">
+      Bu rapora ${D.rapor.eksik_dosya != null ? `${sayi(D.rapor.eksik_dosya)} dosya dahil edilmedi` : "dosyaların bir kısmı dahil edilmedi"};
+      bu dosyalar listede görünür ama içerikleri açılamaz.</div>` : ""}
+    <div class="kart">
+      <div class="sekmeli-baslik">
+        <button class="ac">${ik("asagi")}</button>
+        ${[["istatistik", "İstatistik"], ["cikarma", "Çıkarma bilgisi"], ["sahip", "Sahip"], ["genel", "Genel Bilgi"], ["cihaz", "Cihaz"], ["foto", "Fotoğraflar"], ["not", "Not"]]
+          .map(([k, b]) => `<button class="t ${s.panel === k ? "aktif" : ""}" onclick="panelSec('${k}')">${b}</button>`).join("")}
+      </div>
+      <div class="kart-govde" id="panel"></div>
+    </div>
+    ${bolum("genel", "Genel bölümler", genel.map(doseme).join(""), genel.length)}
+    ${bolum("analitik", "Analitik", analitik.map(doseme).join(""), analitik.length)}
+    ${bolum("uygulama", "Uygulamalar", o.uygulamalar.map(u => `
+      <div class="doseme" onclick="uygulamaAc('${s.cid}', ${esc(JSON.stringify(u))})">${appIkon(u)}
+        <div class="metin"><div class="ad" title="${esc(u.ad)}">${esc(u.ad)}<span class="nokta"></span></div>
+        <div class="say">${sayi(u.adet)}</div></div></div>`).join("") || `<div class="soluk" style="color:var(--soluk)">Uygulama verisi yok</div>`,
+      o.uygulamalar.length)}
+  </div>`;
+  panelCiz(s, o);
+}
+function panelSec(k) { const s = D.sekmeler.find(x => x.anahtar === D.aktif); s.panel = k; ciz(); }
+async function yenidenDizinle(cid) { D.ozet[cid] = null; await ozetAl(cid, true); toast("Dizin yeniden oluşturuldu"); ciz(); }
+
+function panelCiz(s, o) {
+  const p = $("#panel"), g = o.cihaz, d = g.cihaz, n = o.sayilar;
+  const satir = (k, v, kaynak) => v ? `<tr><td>${esc(k)}</td><td>${esc(v)}</td><td class="kaynak">${esc(kaynak || "")}</td></tr>` : "";
+  const grup = (baslik, ic) => `<div class="grup"><div class="gb" onclick="this.parentNode.classList.toggle('kapali')">${ik("asagi")}${baslik}</div>${ic}</div>`;
+  const cikarmaGrup = (c, ic) => `<div class="grup"><div class="gb" onclick="this.parentNode.classList.toggle('kapali')">${ik("asagi")}
+     Ambar ${esc(c.tur_adi.toLowerCase())} (${esc(c.ad)})<span class="nokta"></span></div><div class="alt">${ic}</div></div>`;
+  if (s.panel === "genel") {
+    // Olay / kanıt bilgileri: inceleyicinin girdiği alanlar (otomatik kaydedilir, raporların kapağında görünür)
+    const tarihAlani = ad => /tarih/i.test(ad);
+    const alan = (a, i) => `<div class="olay-satir" data-i="${i}">
+        ${a.ozel ? `<input class="olay-ad" value="${esc(a.ad)}" placeholder="Alan adı">` : `<label class="olay-ad">${esc(a.ad)}</label>`}
+        ${a.ad === "Açıklama" ? `<textarea class="olay-deger" rows="3">${esc(a.deger)}</textarea>`
+          : `<input class="olay-deger" type="${tarihAlani(a.ad) && !a.ozel ? "datetime-local" : "text"}" value="${esc(a.deger)}">`}
+        ${a.ozel ? `<button class="dugme olay-sil" title="Alanı sil">${ik("kapat")}</button>` : "<span></span>"}</div>`;
+    const ilk = g.cikarmalar[0] || {}, son = g.cikarmalar[g.cikarmalar.length - 1] || {};
+    p.innerHTML = `<div class="olay-izgara">
+      <div><div class="olay-baslik">Olay ve kanıt bilgileri <span class="soluk" id="olay-durum"></span></div>
+        <div id="olay-alanlar">${o.olay.map(alan).join("")}</div>
+        <button class="dugme" id="olay-ekle" style="margin-top:8px">+ Alan ekle</button>
+        <div class="soluk" style="margin-top:8px;font-size:12px">Bilgiler otomatik kaydedilir, delil klasörüne yazılmaz ve dışa aktarılan raporların kapağında yer alır.</div></div>
+      <div><div class="olay-baslik">Genel bilgi</div><table class="olay-ozet">
+        ${satir("Cihaz", g.baslik)}${satir("Üretici / model", [d.marka, d.model].filter(Boolean).join(" / "))}
+        ${satir("Android", d.android)}${satir("Seri numarası", d.seri)}${satir("IMEI", d.imei)}${satir("Cihaz adı", d.cihaz_adi)}
+        ${satir("Çıkarma sayısı", String(g.cikarmalar.length))}${satir("İlk çıkarma", (ilk.tarih || "").replace("T", " "))}
+        ${satir("Son çıkarma", (son.tarih || "").replace("T", " "))}${satir("Toplam veri", boyut(n.toplam_boyut))}
+        ${satir("Çağrı / mesaj", `${sayi(n.cagrilar)} / ${sayi(n.mesajlar)}`)}${satir("Etiketli delil", String(n.etiketler))}</table></div></div>`;
+    const kaydet = () => { clearTimeout(p._z); $("#olay-durum").textContent = "kaydediliyor...";
+      p._z = setTimeout(async () => {
+        o.olay = [...p.querySelectorAll(".olay-satir")].map(x => ({
+          ad: x.querySelector("input.olay-ad") ? x.querySelector("input.olay-ad").value : x.querySelector(".olay-ad").textContent,
+          deger: x.querySelector(".olay-deger").value, ozel: !!x.querySelector("input.olay-ad")}));
+        await api("/api/olay", {cihaz: s.cid, alanlar: o.olay.filter(a => a.ad.trim())});
+        $("#olay-durum") && ($("#olay-durum").textContent = "· kaydedildi");
+      }, 500); };
+    p.addEventListener("input", e => { if (e.target.closest(".olay-satir")) kaydet(); });
+    p.addEventListener("click", e => {
+      const sil = e.target.closest(".olay-sil");
+      if (sil) { sil.closest(".olay-satir").remove(); kaydet(); }
+    });
+    $("#olay-ekle").onclick = () => {
+      $("#olay-alanlar").insertAdjacentHTML("beforeend", alan({ad: "", deger: "", ozel: true}, Date.now()));
+      $("#olay-alanlar").lastElementChild.querySelector("input").focus();
+    };
+  } else if (s.panel === "cihaz") {
+    const k = g.cikarmalar.find(c => c.cihaz && c.cihaz.model) || g.cikarmalar[0];
+    const kaynak = k && k.tur === "komple" && !k.ambar_surum ? "getprop.txt" : "ambar_bilgi.json";
+    const sol = cikarmaGrup(k, grup("Genel bilgi", `<table>
+        ${satir("Dahili isim", "Ambar " + k.tur_adi)}${satir("İşletim sistemi platformu", d.android && "Android " + d.android, kaynak)}
+        ${satir("Ticari ad", d.ticari_ad, kaynak)}${satir("Yapı", d.yapi, kaynak)}${satir("Parmak izi", d.parmak_izi, kaynak)}
+        ${satir("Android ID", d.android_id, kaynak)}${satir("Seri numarası", d.seri, kaynak)}
+        ${satir("IMEI", d.imei, d.imei_kaynak ? kaynak + " (" + d.imei_kaynak + ")" : kaynak)}</table>`)
+      + grup("Cihaz bilgisi", `<table>${satir("Üretici", d.marka, kaynak)}${satir("Model", d.model, kaynak)}
+        ${satir("Cihaz kodu", d.cihaz_kodu, kaynak)}${satir("Android sürümü", d.android, kaynak)}${satir("SDK", d.sdk, kaynak)}
+        ${satir("Güvenlik yaması", d.guvenlik_yamasi, kaynak)}${satir("Yonga seti", d.yonga, kaynak)}</table>`));
+    const sag = cikarmaGrup(k, grup("Cihaz ayarları", `<table>${satir("Saat dilimi", d.saat_dilimi, kaynak)}${satir("Cihaz adı", d.cihaz_adi, kaynak)}</table>`)
+        + grup("Hesaplar", `<table>${o.hesaplar.slice(0, 6).map(h => satir(h.tur, h.ad, h.kaynak || "hesaplar.txt")).join("") || satir("Hesap", "Bilgi yok")}</table>`)
+        + (o.sim && o.sim.length ? grup("SIM kartlar", `<table>${o.sim.map(x =>
+            satir((x.operator || x.gorunen_ad || "SIM") + (x.sub_id ? ` (#${x.sub_id})` : ""), x.durum, x.kaynak)
+            + satir("· Numara", x.numara) + satir("· ICCID", x.iccid) + satir("· IMSI", x.imsi)).join("")}</table>`) : ""))
+      + g.cikarmalar.filter(c => c !== k).map(c => cikarmaGrup(c, grup("Genel bilgi", `<table>${satir("Dahili isim", "Ambar " + c.tur_adi)}
+        ${satir("Tarih", (c.tarih || "").replace("T", " "))}${satir("İşletim sistemi platformu", "Android İşletim Sistemi")}</table>`))).join("");
+    p.innerHTML = `<div class="agac"><div>${sol}</div><div>${sag}</div></div>`;
+  } else if (s.panel === "istatistik") {
+    const k = [["Uygulamalar", n.uygulamalar], ["Çağrılar", n.cagrilar], ["Mesajlar", n.mesajlar], ["Kişiler", n.kisiler],
+      ["Dosyalar", n.dosyalar], ["Fotoğraf ve video", n.fotograflar], ["Notlar", n.notlar], ["Hesaplar", n.hesaplar], ["Rehber", n.rehber], ["Takvim", n.takvim],
+      ["SIM kartlar", n.sim_kartlari], ["SIM rehberi", n.sim_rehberi], ["Etiketli delil", n.etiketler]];
+    p.innerHTML = `<div class="ozet-izgara">${k.map(([a, v]) => `<div class="ozet-kutu"><b>${sayi(v)}</b><span>${a}</span></div>`).join("")}
+      <div class="ozet-kutu"><b>${boyut(n.toplam_boyut)}</b><span>Toplam veri</span></div></div>`;
+  } else if (s.panel === "cikarma") {
+    const zt = t => esc((t || "").replace("T", " "));
+    p.innerHTML = `<table class="veri"><thead><tr><th>Tür</th><th>Klasör</th><th>Başlangıç</th><th>Bitiş</th><th>Süre</th>
+      <th>Ambar</th><th>SHA-256 listesi</th><th>Yol</th></tr></thead><tbody>
+      ${g.cikarmalar.map(c => `<tr><td><span class="rozet">${esc(c.tur_adi)}</span></td><td>${esc(c.ad)}</td>
+        <td>${zt(c.tarih)}</td>
+        <td>${zt(c.bitis)}</td>
+        <td>${c.sure_sn == null ? "" : sure(c.sure_sn)}</td>
+        <td>${esc(c.ambar_surum ? "v" + c.ambar_surum : "-")}</td><td>${c.sha256 ? "Var" : "Yok"}</td><td title="${esc(c.yol)}">${esc(c.yol)}</td></tr>`).join("")}</tbody></table>`;
+  } else if (s.panel === "sahip") {
+    p.innerHTML = `<table class="veri"><thead><tr><th>Bilgi</th><th>Değer</th><th>Kaynak</th></tr></thead><tbody>
+      ${d.cihaz_adi ? `<tr><td>Cihaz adı</td><td>${esc(d.cihaz_adi)}</td><td>ayarlar</td></tr>` : ""}
+      ${o.hesaplar.map(h => `<tr><td>${esc(h.tur)}</td><td>${esc(h.ad)}</td><td>${esc(h.kaynak || "hesaplar.txt")}</td></tr>`).join("")}
+      ${!o.hesaplar.length && !d.cihaz_adi ? `<tr><td colspan="3">Sahip bilgisi için komple yedek gerekir</td></tr>` : ""}</tbody></table>`;
+  } else if (s.panel === "foto") {
+    p.innerHTML = `<div id="foto-serit" class="galeri" style="padding:0;grid-template-columns:repeat(auto-fill,minmax(110px,1fr))">${yukleniyor()}</div>`;
+    api("/api/bolum?" + qs({cihaz: s.cid, ad: "dosyalar", kategori: "Görüntü", boyut: 16})).then(j => {
+      $("#foto-serit").innerHTML = j.satirlar.map(r => `<div class="oge" onclick="galeriAc('${s.cid}')"><img loading="lazy" src="${dosyaUrl(s.cid, r.cikarma, r.yol)}"></div>`).join("")
+        || `<div style="color:var(--soluk)">Fotoğraf yok</div>`;
+    });
+  } else if (s.panel === "not") {
+    p.innerHTML = `<div class="not-alan"><textarea id="cihaz-not" placeholder="Bu cihazla ilgili inceleyici notlarınız... (otomatik kaydedilir, delil klasörüne yazılmaz)">${esc(o.not)}</textarea></div>`;
+    $("#cihaz-not").addEventListener("input", e => { clearTimeout(e.target._z); e.target._z = setTimeout(async () => {
+      await api("/api/not", {cihaz: s.cid, metin: e.target.value}); o.not = e.target.value; toast("Not kaydedildi"); }, 600); });
+  }
+}
+
+// ======================================================================= bölüm açıcılar
+const BOLUM_AD = {uygulamalar: ["Uygulamalar", "uygulama"], cagrilar: ["Çağrılar", "cagri"], dosyalar: ["Dosyalar", "dosya"],
+  hesaplar: ["Hesaplar ve Şifreler", "anahtar"], kisiler: ["Kişiler", "kisi"], mesajlar: ["Mesajlar", "mesaj"], notlar: ["Notlar", "not"],
+  sim_kartlari: ["SIM kartlar", "sim"], sim_rehberi: ["SIM rehberi", "kisi"], sim_dosyalari: ["SIM dosya sistemi", "cip"],
+  rehber: ["Rehber", "kisi"], takvim: ["Takvim", "zaman"]};
+function bolumAc(cid, ad, filtre = {}, baslikEk = "") {
+  const g = D.cihazlar.find(x => x.id === cid);
+  if (ad === "rapor") return raporAc(cid);
+  if (ad === "galeri") return galeriAc(cid);
+  if (["zaman", "istatistik", "ara", "etiketler"].includes(ad)) {
+    const b = {zaman: ["Zaman çizelgesi", "zaman"], istatistik: ["İstatistik", "istatistik"], ara: ["Arama", "ara"], etiketler: ["Etiketli deliller", "etiket"]}[ad];
+    return sekmeAc({anahtar: `${ad}-${cid}`, tur: ad, cid, baslik: `${b[0]} - ${g.baslik}`, ikon: b[1], q: filtre.q || "", guncelle: !!filtre.q});
+  }
+  const [b, ikon] = BOLUM_AD[ad];
+  sekmeAc({anahtar: `${ad}-${cid}-${JSON.stringify(filtre)}`, tur: "bolum", ad, cid, baslik: `${b}${baslikEk} - ${g.baslik}`, ikon,
+    filtre, q: "", sayfa: 1, sirala: "", yon: "", secili: null});
+}
+function galeriAc(cid, filtre = {}) {
+  const g = D.cihazlar.find(x => x.id === cid);
+  sekmeAc({anahtar: "galeri-" + cid + JSON.stringify(filtre), tur: "galeri", cid, baslik: "Fotoğraf ve video - " + g.baslik, ikon: "foto",
+    kategori: filtre.kategori || "Görüntü", filtre, sayfa: 1, q: ""});
+}
+function uygulamaAc(cid, u) {
+  if (u.ozel) return bolumAc(cid, u.ozel);
+  if (u.paket.startsWith("com.whatsapp")) {
+    const g = D.cihazlar.find(x => x.id === cid);
+    return sekmeAc({anahtar: "wa-" + cid + u.paket, tur: "whatsapp", cid, paket: u.paket, baslik: uygulamaAdi(u.paket) + " - " + g.baslik, ikon: "mesaj"});
+  }
+  const f = {uygulama: u.paket}; if (u.hesap) f.hesap = u.hesap;
+  bolumAc(cid, "dosyalar", f, " · " + u.ad);
+}
+const uygulamaAdi = p => p === "com.whatsapp.w4b" ? "WhatsApp Business" : "WhatsApp Messenger";
+const simgeUrl = (cid, paket) => "/api/simge?" + qs({cihaz: cid, paket});
+const harfRenk = p => `hsl(${[...(p || "?")].reduce((a, c) => a + c.charCodeAt(0), 0) % 360} 55% 48%)`;
+// Uygulama adı + kendi simgesi (simge yoksa renkli baş harf)
+const appAd = (cid, paket, ad) => `<div class="app-ad"><img loading="lazy" src="${simgeUrl(cid, paket)}"
+  onerror="this.style.display='none';this.nextElementSibling.style.display='grid'"><span class="harf" style="display:none;background:${harfRenk(paket)}">${esc((ad || paket || "?")[0].toUpperCase())}</span>
+  <span>${esc(ad)}</span></div>`;
+function raporAc(cid) { window.open("/rapor?cihaz=" + cid, "_blank"); }
+
+// ======================================================================= dışa aktarma sihirbazı
+const SIH_SAYFA = [["genel", "Genel", "ayar"], ["dosyalar", "Dosyalar", "dosya"], ["tarih", "Tarih filtreleri", "zaman"],
+  ["bilgi", "Rapor bilgileri", "rapor"], ["gorunus", "Görünüş", "foto"], ["ustalt", "Üstbilgi ve altbilgi", "not"]];
+const BOLUM_IKON = {cihaz: "tel", cagrilar: "cagri", mesajlar: "mesaj", kisiler: "kisi", dosyalar: "dosya", uygulamalar: "uygulama",
+  hesaplar: "anahtar", notlar: "not", etiketler: "etiket", zaman: "zaman", istatistik: "istatistik",
+  sim_kartlari: "sim", sim_rehberi: "kisi", sim_dosyalari: "cip", rehber: "kisi", takvim: "zaman"};
+const BICIM_NOT = {
+  portable: "Tüm veriler ve dosyalar tek bir <b>.ambx</b> dosyasına yazılır; yanına <b>.sha256</b> / <b>.md5</b> özet dosyaları ve <b>AmbarIncele.exe</b> konur. Rapor başka bir bilgisayarda kurulum gerektirmeden açılır.",
+  html: "Tarayıcıda açılan tablo görünümlü rapor. Dosyalar dışa aktarılırsa rapordan bağlantıyla açılır.",
+  pdf: "Microsoft Edge ile PDF üretilir. Üst/alt bilgi ve sayfa numarası her sayfada görünür.",
+  xlsx: "Her bölüm ayrı bir çalışma sayfası olur (Excel, LibreOffice).",
+  csv: "Her bölüm ayrı bir CSV dosyası olur (UTF-8, noktalı virgül ayraçlı; Excel'de doğrudan açılır).",
+  json: "Makine tarafından okunabilir tek dosya (veya bölüm başına bir dosya)."};
+const anahtar = (id, yazi, acik) => `<label class="anahtar"><input type="checkbox" id="${id}" ${acik ? "checked" : ""}><i></i><span>${yazi}</span></label>`;
+const yerelTarih = ms => { if (!ms) return ""; const d = new Date(+ms); return new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 16); };
+
+async function disaSihirbaz(cid) {
+  const b = await api("/api/sihirbaz?cihaz=" + cid), d = b.disa, r = b.rapor;
+  const W = {
+    bolumler: new Set(d.bolumler && d.bolumler.length ? d.bolumler : [...b.genel, ...b.analitik].map(x => x.ad)),
+    kategoriler: new Set(d.kategoriler || b.kategoriler.map(k => k.ad)),
+    uygulamalar: new Set(d.uygulamalar || b.uygulamalar.map(u => u.paket)),
+    logo: r.logo || ""};
+  b.kategoriler.forEach(k => { if (!d.kategoriler) W.kategoriler.add(k.ad); });
+  const oge = (x, grup) => `<label class="oge"><input type="checkbox" data-b="${x.ad}" data-g="${grup}" ${W.bolumler.has(x.ad) ? "checked" : ""}>
+      ${ik(BOLUM_IKON[x.ad] || "dosya")}<span class="ad">${esc(x.baslik)}</span><span class="say">${x.adet == null ? "" : sayi(x.adet)}</span></label>`;
+  const grup = (ad, baslik, liste) => `<div class="grup"><label class="oge g"><input type="checkbox" data-grup="${ad}">${ik("asagi")}<span class="ad">${baslik}</span></label>
+      <div class="alt">${liste.map(x => oge(x, ad)).join("")}</div></div>`;
+  const renk = p => `hsl(${[...p].reduce((a, c) => a + c.charCodeAt(0), 0) % 360} 55% 48%)`;
+  const sayfalar = {
+    genel: `<h1>Genel rapor ayarları</h1><p class="ack">Dışa aktarılacak verileri seçin, raporun yolunu ve biçimini belirtin.</p>
+      <div class="sih-iki">
+        <div class="kutu"><div class="kutu-b"><label><input type="checkbox" id="sh-tum-b"> Bölümler (${b.genel.length + b.analitik.length})</label></div>
+          <div class="kutu-i">${grup("genel", "Genel bölümler", b.genel)}${grup("analitik", "Analitik", b.analitik)}</div></div>
+        <div class="kutu"><div class="kutu-b"><label><input type="checkbox" id="sh-tum-u"> Uygulamalar (${b.uygulamalar.length})</label></div>
+          <div class="kutu-i">${b.uygulamalar.map(u => `<label class="oge"><input type="checkbox" data-u="${esc(u.paket)}" ${W.uygulamalar.has(u.paket) ? "checked" : ""}>
+            <span class="uik" style="background:${u.paket.startsWith("com.whatsapp") ? "#25d366" : renk(u.paket)}">${esc((u.ad || "?")[0].toUpperCase())}</span>
+            <span class="ad" title="${esc(u.paket)}">${esc(u.ad)}</span><span class="say">${sayi(u.adet)}</span></label>`).join("")
+            || `<div class="soluk" style="padding:8px">Dosyası bulunan uygulama yok</div>`}</div></div>
+      </div>
+      <div class="sih-form">
+        <div class="alan">Klasörü dışa aktar<div class="klasor-sec"><input type="text" id="sh-hedef" value="${esc(d.hedef || b.varsayilan_hedef)}" spellcheck="false">
+          <button class="dugme" id="sh-gozat" title="Klasör seç (yeni klasör de oluşturabilirsiniz)">${ik("dosya")} Gözat...</button></div></div>
+        <label class="alan">Dosya adı<input type="text" id="sh-ad" value="${esc(d.ad || "Rapor")}"></label>
+        <div class="sih-satir">
+          <label class="alan">Dışa aktarma biçimi<select id="sh-bicim">${Object.entries(b.bicimler).map(([k, v]) =>
+            `<option value="${k}" ${k === (d.bicim || "portable") ? "selected" : ""}>${esc(v)}</option>`).join("")}</select>
+            <div class="soluk not" id="sh-bicim-not"></div></label>
+          <div class="anahtarlar">
+            ${anahtar("sh-dosya", "Seçilen bölümlerden dosyaları dışa aktar", d.dosya_disa !== false)}
+            ${anahtar("sh-etiketli", "Sadece etiketli (delil) kayıtları aktar", d.sadece_etiketli)}
+            ${anahtar("sh-ayri", "Her bölümü ayrı bir dosyaya aktar", d.ayri_dosya)}
+          </div></div>
+        ${b.exe || b.portable ? "" : `<div class="uyari" style="margin:8px 0 0">AmbarIncele.exe bulunamadı (build.ps1 ile derleyin); portable rapora görüntüleyici eklenemez.</div>`}
+      </div>`,
+    dosyalar: `<h1>Dosyalar</h1><p class="ack">Rapora kopyalanacak dosya türlerini seçin. Genel sayfasındaki uygulama seçimi de dosyaları süzer
+        (uygulamaya ait olmayan dosyalar her zaman dahildir).</p>
+      <div class="kutu" style="max-width:560px"><div class="kutu-b"><label><input type="checkbox" id="sh-tum-k"> Dosya türleri</label></div>
+        <div class="kutu-i">${b.kategoriler.map(k => `<label class="oge"><input type="checkbox" data-k="${esc(k.ad)}" ${W.kategoriler.has(k.ad) ? "checked" : ""}>
+          ${ik("dosya")}<span class="ad">${esc(k.ad)}</span><span class="say">${sayi(k.adet)} · ${boyut(k.boyut)}</span></label>`).join("")
+          || `<div class="soluk" style="padding:8px">Dosya yok</div>`}</div></div>
+      <div class="soluk" id="sh-boyut" style="margin:10px 0 16px"></div>
+      ${anahtar("sh-kucuk", "Görüntüleri HTML/PDF raporda küçük resim olarak göster", d.kucuk_resim !== false)}`,
+    tarih: `<h1>Tarih filtreleri</h1><p class="ack">Yalnızca seçilen tarih aralığındaki kayıtları aktarın. Çağrılar, mesajlar, kişiler (son iletişim),
+        dosyalar (değiştirme), notlar ve zaman çizelgesine uygulanır.</p>
+      ${anahtar("sh-tarih", "Tarih filtresi uygula", !!(d.tarih_bas || d.tarih_bit))}
+      <div class="sih-satir" style="margin-top:14px;max-width:620px">
+        <label class="alan">Başlangıç<input type="datetime-local" id="sh-tbas" value="${yerelTarih(d.tarih_bas)}"></label>
+        <label class="alan">Bitiş<input type="datetime-local" id="sh-tbit" value="${yerelTarih(d.tarih_bit)}"></label></div>`,
+    bilgi: `<h1>Rapor bilgileri</h1><p class="ack">Raporun kapak sayfasında görünür. Bilgiler sonraki raporlar için şablon olarak saklanır.</p>
+      <div class="sih-form" style="max-width:720px">
+        <label class="alan">Rapor başlığı<input type="text" id="sh-r-baslik" value="${esc(r.baslik)}"></label>
+        <label class="alan">Kurum / birim<input type="text" id="sh-r-kurum" value="${esc(r.kurum)}"></label>
+        <div class="sih-satir"><label class="alan">İnceleyen<input type="text" id="sh-r-inceleyen" value="${esc(r.inceleyen)}"></label>
+          <label class="alan">Dosya / vaka no<input type="text" id="sh-r-dosya_no" value="${esc(r.dosya_no)}"></label></div>
+        <label class="alan">Açıklama<textarea id="sh-r-aciklama" rows="5">${esc(r.aciklama)}</textarea></label></div>`,
+    gorunus: `<h1>Görünüş</h1><p class="ack">Logo, tema rengi ve sayfa düzeni (HTML ve PDF).</p>
+      <div class="logo-alan"><div class="logo-on" id="sh-logo-on"></div>
+        <div><label class="dugme">${ik("foto")} Logo seç<input type="file" id="sh-logo" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" hidden></label>
+          <button class="dugme" id="sh-logo-sil">Kaldır</button>
+          <div class="soluk" style="margin-top:6px">PNG / JPG önerilir; en fazla 600 piksel genişliğe küçültülür.</div></div></div>
+      <div class="sih-satir" style="max-width:620px;margin-top:16px">
+        <label class="alan">Tema rengi<input type="color" id="sh-r-renk" value="${esc(r.renk || "#1565c0")}"></label>
+        <label class="alan">Sayfa yönü<select id="sh-r-yon"><option value="dikey">Dikey</option><option value="yatay" ${r.yon === "yatay" ? "selected" : ""}>Yatay</option></select></label></div>
+      <div class="anahtarlar" style="margin-top:10px">
+        ${anahtar("sh-r-yeni_sayfa", "Her bölüm yeni sayfada başlasın (PDF / yazdırma)", r.yeni_sayfa !== false)}
+        ${anahtar("sh-r-program_bilgisi", "Raporun sonunda program adı ve sürümünü göster", r.program_bilgisi !== false)}</div>`,
+    ustalt: `<h1>Üstbilgi ve altbilgi</h1><p class="ack">PDF'te ve yazdırmada her sayfanın üstünde/altında görünür (HTML'de sayfanın başında).</p>
+      <div class="sih-form" style="max-width:720px">
+        <label class="alan">Üstbilgi<input type="text" id="sh-r-ust_bilgi" value="${esc(r.ust_bilgi)}" placeholder="ör. GİZLİDİR - Yalnızca soruşturma amaçlı"></label>
+        <label class="alan">Altbilgi<input type="text" id="sh-r-alt_bilgi" value="${esc(r.alt_bilgi)}" placeholder="ör. Kurum adı / adres"></label></div>
+      <div class="anahtarlar">${anahtar("sh-r-sayfa_no", "Sayfa numarası (Sayfa 3 / 12)", r.sayfa_no !== false)}</div>`,
+  };
+  const p = document.createElement("div");
+  p.className = "sih-arka";
+  p.innerHTML = `<div class="sih">
+    <div class="sih-ust">${ik("indir")}<span>Dışa aktarma sihirbazı</span><button class="kapat-x" id="sh-x">${ik("kapat")}</button></div>
+    <div class="sih-govde">
+      <nav class="sih-nav">${SIH_SAYFA.map(([k, a, i]) => `<button data-s="${k}">${ik(i)}<span>${a}</span></button>`).join("")}</nav>
+      <div class="sih-icerik">${SIH_SAYFA.map(([k]) => `<div class="sih-sayfa" data-s="${k}">${sayfalar[k]}</div>`).join("")}</div></div>
+    <div class="sih-alt"><div class="sih-durum"><div id="sh-durum"></div><div class="ilerleme"><i id="sh-bar"></i></div></div>
+      <button class="dugme" id="sh-onizle">${ik("rapor")} Önizle</button>
+      <button class="dugme ana" id="sh-aktar">Dışa aktar</button><button class="dugme" id="sh-iptal">İptal</button></div></div>`;
+  document.body.appendChild(p);
+  const q = s => $(s, p), qa = s => [...p.querySelectorAll(s)];
+  const sayfaSec = k => { qa(".sih-nav button").forEach(x => x.classList.toggle("aktif", x.dataset.s === k));
+    qa(".sih-sayfa").forEach(x => x.style.display = x.dataset.s === k ? "" : "none"); };
+  qa(".sih-nav button").forEach(x => x.onclick = () => sayfaSec(x.dataset.s));
+  sayfaSec("genel");
+
+  // onay kutuları: grup / tümü / üç durumlu
+  const esitle = () => {
+    for (const g of ["genel", "analitik"]) {
+      const c = qa(`[data-g="${g}"]`), n = c.filter(x => x.checked).length, gk = q(`[data-grup="${g}"]`);
+      gk.checked = n === c.length; gk.indeterminate = n > 0 && n < c.length;
+    }
+    const ust = (id, sel) => { const c = qa(sel), n = c.filter(x => x.checked).length, k = q(id); if (!k) return;
+      k.checked = c.length > 0 && n === c.length; k.indeterminate = n > 0 && n < c.length; };
+    ust("#sh-tum-b", "[data-b]"); ust("#sh-tum-u", "[data-u]"); ust("#sh-tum-k", "[data-k]");
+    const sec = b.kategoriler.filter(k => q(`[data-k="${CSS.escape(k.ad)}"]`).checked);
+    q("#sh-boyut").textContent = `Seçili: ${sayi(sec.reduce((a, k) => a + k.adet, 0))} dosya · ${boyut(sec.reduce((a, k) => a + k.boyut, 0))} (uygulama ve tarih filtresinden önce)`;
+    const bicim = q("#sh-bicim").value;
+    q("#sh-bicim-not").innerHTML = BICIM_NOT[bicim] || "";
+    q("#sh-ayri").disabled = bicim === "portable" || bicim === "csv";
+    q("#sh-ayri").closest(".anahtar").style.opacity = q("#sh-ayri").disabled ? .45 : 1;
+  };
+  p.addEventListener("change", e => {
+    const t = e.target;
+    if (t.dataset.grup) qa(`[data-g="${t.dataset.grup}"]`).forEach(x => x.checked = t.checked);
+    if (t.id === "sh-tum-b") qa("[data-b]").forEach(x => x.checked = t.checked);
+    if (t.id === "sh-tum-u") qa("[data-u]").forEach(x => x.checked = t.checked);
+    if (t.id === "sh-tum-k") qa("[data-k]").forEach(x => x.checked = t.checked);
+    esitle();
+  });
+  esitle();
+
+  // logo: küçültülüp veri adresi olarak saklanır
+  const logoCiz = () => { q("#sh-logo-on").innerHTML = W.logo ? `<img src="${W.logo}" alt="">` : `<span class="soluk">Logo yok</span>`; };
+  logoCiz();
+  q("#sh-logo").onchange = e => {
+    const f = e.target.files[0]; if (!f) return;
+    const okuyucu = new FileReader();
+    okuyucu.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const o = Math.min(1, 600 / img.width), c = document.createElement("canvas");
+        c.width = Math.round(img.width * o); c.height = Math.round(img.height * o);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        W.logo = c.toDataURL("image/png"); logoCiz();
+      };
+      img.src = okuyucu.result;
+    };
+    okuyucu.readAsDataURL(f);
+  };
+  q("#sh-logo-sil").onclick = () => { W.logo = ""; logoCiz(); };
+
+  const topla = () => {
+    const rapor = {logo: W.logo};
+    qa("[id^=sh-r-]").forEach(x => rapor[x.id.slice(5)] = x.type === "checkbox" ? x.checked : x.value);
+    const tarihAcik = q("#sh-tarih").checked;
+    const ms = v => v ? new Date(v).getTime() : null;
+    const tumU = qa("[data-u]").every(x => x.checked), tumK = qa("[data-k]").every(x => x.checked);
+    return {cihaz: cid, bicim: q("#sh-bicim").value, hedef: q("#sh-hedef").value.trim(), ad: q("#sh-ad").value.trim() || "Rapor",
+      bolumler: qa("[data-b]").filter(x => x.checked).map(x => x.dataset.b),
+      uygulamalar: tumU ? null : qa("[data-u]").filter(x => x.checked).map(x => x.dataset.u),
+      kategoriler: tumK ? null : qa("[data-k]").filter(x => x.checked).map(x => x.dataset.k),
+      dosya_disa: q("#sh-dosya").checked, sadece_etiketli: q("#sh-etiketli").checked, ayri_dosya: q("#sh-ayri").checked,
+      kucuk_resim: q("#sh-kucuk").checked,
+      tarih_bas: tarihAcik ? ms(q("#sh-tbas").value) : null, tarih_bit: tarihAcik ? ms(q("#sh-tbit").value) : null, rapor};
+  };
+  q("#sh-gozat").onclick = async () => {
+    const bt = q("#sh-gozat"); bt.disabled = true;
+    q("#sh-durum").textContent = "Klasör seçme penceresi açılıyor...";
+    try { const j = await api("/api/klasor_sec", {baslangic: q("#sh-hedef").value, baslik: "Raporun kaydedileceği klasörü seçin"}); if (j.yol) q("#sh-hedef").value = j.yol; }
+    catch (e) { toast(e.message); }
+    finally { bt.disabled = false; q("#sh-durum").textContent = ""; }
+  };
+  let zaman = null;
+  const kapat = () => { clearInterval(zaman); p.remove(); };
+  q("#sh-x").onclick = q("#sh-iptal").onclick = kapat;
+  q("#sh-onizle").onclick = async () => {
+    const pen = window.open("about:blank", "_blank");
+    try { const j = await api("/api/rapor_onizle", topla()); pen.location = j.url; }
+    catch (e) { pen && pen.close(); toast(e.message); }
+  };
+  q("#sh-aktar").onclick = async () => {
+    const v = topla();
+    if (!v.bolumler.length) { toast("En az bir bölüm seçin"); return; }
+    q("#sh-aktar").disabled = true;
+    try { await api("/api/disa_aktar", v); }
+    catch (e) { q("#sh-durum").textContent = e.message; q("#sh-aktar").disabled = false; return; }
+    zaman = setInterval(async () => {
+      const dd = await api("/api/disa_durum");
+      q("#sh-bar").style.width = (dd.yuzde || 0) + "%";
+      q("#sh-durum").textContent = dd.mesaj || "";
+      if (dd.durum === "bitti") {
+        clearInterval(zaman); zaman = null;
+        q("#sh-durum").innerHTML = `<b style="color:var(--yesil)">Dışa aktarıldı:</b> ${esc(dd.yol)}`;
+        const ac = q("#sh-aktar"); ac.disabled = false; ac.textContent = "Klasörü aç";
+        ac.onclick = () => api("/api/klasor_ac", {});
+        q("#sh-iptal").textContent = "Kapat";
+      } else if (dd.durum === "hata") {
+        clearInterval(zaman); zaman = null;
+        q("#sh-durum").innerHTML = `<b style="color:var(--kirmizi)">Hata:</b> ${esc(dd.mesaj)}`;
+        q("#sh-aktar").disabled = false;
+      }
+    }, 500);
+  };
+}
+
+// ======================================================================= tablo bölümü
+const FILTRE_SECENEK = {
+  dosyalar: ["kategori", ["", "Görüntü", "Video", "Ses", "Belge", "Arşiv", "Uygulama", "Veritabanı", "Diğer"], "Tüm türler"],
+  cagrilar: ["tur", ["", "Gelen", "Giden", "Cevapsız", "Reddedilen", "Engellenen", "Sesli mesaj"], "Tüm çağrılar"],
+  mesajlar: ["kaynak", ["", "SMS", "MMS", "SIM SMS"], "Tüm mesajlar"],
+};
+function mesajGorunumSecici(s) {
+  if (s.ad !== "mesajlar") return "";
+  const b = (g, ikon, yazi) => `<button class="${s.gorunum === g ? "aktif" : ""}" onclick="mesajGorunum('${g}')">${ik(ikon)} ${yazi}</button>`;
+  return `<div class="gorunum-sec" title="Görünüm">${b("tablo", "liste", "Tablo")}${b("gorusme", "mesaj", "Görüşmeler")}</div>`;
+}
+function mesajGorunum(g) {
+  const s = aktifSekme();
+  s.gorunum = g;
+  try { localStorage.setItem("ambar_mesaj_gorunum", g); } catch (e) {}
+  ciz();
+}
+async function bolumSayfasi(ana, s) {
+  if (s.ad === "mesajlar") {
+    if (!s.gorunum) { try { s.gorunum = localStorage.getItem("ambar_mesaj_gorunum"); } catch (e) {} s.gorunum = s.gorunum || "tablo"; }
+    if (s.gorunum === "gorusme") return mesajGorusmeSayfasi(ana, s);
+  }
+  const fs = FILTRE_SECENEK[s.ad];
+  const [b, ikon] = BOLUM_AD[s.ad];
+  ana.innerHTML = `<div class="kart" style="margin:0;border-left:0;border-right:0">
+    <div class="arac"><h2>${ik(ikon)}${esc(s.baslik.split(" - ")[0])} <span class="say" id="say"></span></h2>
+      ${s.ad === "kisiler" ? `<span class="rozet" title="Telefon rehberi (Android Agent), SIM rehberi, çağrı ve mesaj kayıtları birleştirilir">Rehber + çağrı ve mesaj kayıtları</span>` : ""}
+      <div class="bosluk"></div>
+      ${mesajGorunumSecici(s)}
+      ${fs ? `<select id="filtre">${fs[1].map(v => `<option value="${v}" ${(s.filtre[fs[0]] || "") === v ? "selected" : ""}>${v || fs[2]}</option>`).join("")}</select>` : ""}
+      <label class="ara-kutu">${ik("ara")}<input id="ara" placeholder="Bu bölümde ara..." value="${esc(s.q)}"></label>
+    </div>
+    <div class="duzen" style="height:calc(100vh - 34px - 51px - 41px)">
+      <div class="tablo-alan" id="tablo">${yukleniyor()}</div>
+      <div class="ayrinti" id="ayrinti" style="display:none"></div>
+    </div>
+    <div class="sayfalama" id="sayfalama"></div></div>`;
+  $("#ara").addEventListener("input", e => { clearTimeout(e.target._z); e.target._z = setTimeout(() => { s.q = e.target.value; s.sayfa = 1; tabloYukle(s); }, 300); });
+  fs && $("#filtre").addEventListener("change", e => { s.filtre = {...s.filtre, [fs[0]]: e.target.value}; s.sayfa = 1; tabloYukle(s); });
+  tabloYukle(s);
+}
+async function tabloYukle(s) {
+  let j;
+  try { j = await api("/api/bolum?" + qs({cihaz: s.cid, ad: s.ad, q: s.q, sayfa: s.sayfa, sirala: s.sirala, sira_yon: s.yon, ...s.filtre})); if (D.aktif !== s.anahtar || !$("#tablo")) return; }
+  catch (e) { $("#tablo").innerHTML = `<div class="uyari">${esc(e.message)}</div>`; return; }
+  s.veri = j;
+  $("#say").textContent = sayi(j.toplam) + " kayıt";
+  if (!j.toplam) { $("#tablo").innerHTML = `<div class="bos-durum">${ik(BOLUM_AD[s.ad][1])}Kayıt bulunamadı${s.ad === "cagrilar" || s.ad === "mesajlar" ? "<br>Çağrı ve mesajlar için yedeği 'Komple Yedek' veya 'Çağrı ve Mesaj Kayıtları' ile alın." : ""}</div>`; $("#sayfalama").innerHTML = ""; return; }
+  const hucre = (k, r) => {
+    const v = r[k.alan];
+    switch (k.tur) {
+      case "tarih": return `<td>${tarih(v)}</td>`;
+      case "kurulum": return `<td>${esc(kurulum(v, k.alan))}</td>`;
+      case "sure": return `<td>${sure(v)}</td>`;
+      case "boyut": return `<td style="text-align:right">${boyut(v)}</td>`;
+      case "sayi": return `<td style="text-align:right">${sayi(v)}</td>`;
+      case "evet": return `<td>${v ? "Evet" : "Hayır"}</td>`;
+      case "rozet": return `<td>${v ? `<span class="rozet ${esc(v)}">${esc(v)}</span>` : ""}</td>`;
+      case "uzun": return `<td class="uzun"><div>${esc(v)}</div></td>`;
+      case "yol": return `<td title="${esc(v)}" style="color:var(--soluk)">${esc(v)}</td>`;
+      case "kisi": return `<td><div class="app-ad">${r.foto ? `<img loading="lazy" style="border-radius:50%" src="${dosyaUrl(s.cid, r.cikarma, r.foto)}">`
+        : `<span class="harf" style="display:grid;border-radius:50%;background:${harfRenk(v)}">${esc(((v || "?")[0]).toUpperCase())}</span>`}<span>${esc(v)}</span></div></td>`;
+      case "uygulama": return `<td>${appAd(s.cid, r.paket, v)}</td>`;
+      case "dosya": return `<td><div class="dosya-ad">${RESIM.test(v) ? `<img loading="lazy" src="${dosyaUrl(s.cid, r.cikarma, r.yol)}">` : ""}${esc(v)}</div></td>`;
+      default: return `<td title="${esc(v)}">${esc(v)}</td>`;
+    }
+  };
+  $("#tablo").innerHTML = `<table class="veri"><thead><tr><th></th>${j.kolonlar.map(k => `<th onclick="sirala('${k.alan}')">${esc(k.baslik)}${s.sirala === k.alan ? `<span class="ok">${s.yon === "asc" ? "▲" : "▼"}</span>` : ""}</th>`).join("")}</tr></thead>
+    <tbody>${j.satirlar.map((r, i) => `<tr data-i="${i}" class="${s.secili === r.id ? "secili" : ""}"><td class="yildiz">${r._etiket ? ik("yildiz") : ""}</td>${j.kolonlar.map(k => hucre(k, r)).join("")}</tr>`).join("")}</tbody></table>`;
+  $("#tablo tbody").addEventListener("click", e => { const tr = e.target.closest("tr"); if (tr) satirSec(s, j.satirlar[+tr.dataset.i], tr); });
+  const sayfaSay = Math.ceil(j.toplam / j.boyut);
+  $("#sayfalama").innerHTML = `<button class="dugme" ${j.sayfa <= 1 ? "disabled" : ""} onclick="sayfaGit(-1)">‹ Önceki</button>
+    Sayfa ${j.sayfa} / ${sayfaSay} · ${sayi(j.toplam)} kayıt
+    <button class="dugme" ${j.sayfa >= sayfaSay ? "disabled" : ""} onclick="sayfaGit(1)">Sonraki ›</button>`;
+}
+function aktifSekme() { return D.sekmeler.find(x => x.anahtar === D.aktif); }
+function sirala(alan) { const s = aktifSekme(); s.yon = s.sirala === alan && s.yon !== "asc" ? "asc" : "desc"; s.sirala = alan; tabloYukle(s); }
+function sayfaGit(d) { const s = aktifSekme(); s.sayfa += d; tabloYukle(s); $("#tablo").scrollTop = 0; }
+
+function satirSec(s, r, tr) {
+  s.secili = r.id;
+  document.querySelectorAll("#tablo tr.secili").forEach(x => x.classList.remove("secili"));
+  tr && tr.classList.add("secili");
+  const a = $("#ayrinti");
+  a.style.display = "block";
+  const kol = s.veri.kolonlar;
+  let onizleme = "";
+  if (s.ad === "dosyalar") {
+    const url = dosyaUrl(s.cid, r.cikarma, r.yol);
+    onizleme = RESIM.test(r.ad) ? `<img src="${url}">` : VIDEO.test(r.ad) ? `<video src="${url}" controls></video>`
+      : SES.test(r.ad) ? `<audio src="${url}" controls></audio>` : PDF.test(r.ad) ? `<iframe src="${url}"></iframe>`
+      : METIN.test(r.ad) ? `<pre class="metin-on" id="metin-on">Yükleniyor...</pre>` : "";
+    onizleme = `<div class="onizleme" id="onizleme">${onizleme}<div style="margin-top:8px"><a class="dugme" href="${dosyaUrl(s.cid, r.cikarma, r.yol, 1)}">${ik("indir")} Dışa aktar</a>
+      <a class="dugme" href="${url}" target="_blank">Yeni sekmede aç</a></div></div>`;
+    // dosya rapora dahil edilmemişse (portable) bunu açıkça söyle; metin dosyalarının ilk 256 KB'ını göster
+    fetch(url, {headers: {Range: "bytes=0-262143"}}).then(async yan => {
+      if (yan.status === 404) { const o = $("#onizleme"); if (o) o.innerHTML = `<div class="soluk">Bu dosya rapora dahil edilmedi; yalnızca bilgileri görüntülenebilir.</div>`; return; }
+      const m = $("#metin-on"); if (!m) return;
+      const tampon = await yan.arrayBuffer();
+      let t = new TextDecoder("utf-8").decode(tampon);
+      if (/�/.test(t.slice(0, 2000))) t = new TextDecoder("windows-1254").decode(tampon);
+      m.textContent = t + (tampon.byteLength >= 262144 ? "\n\n… (ilk 256 KB gösteriliyor)" : "");
+    }).catch(() => {});
+  }
+  const baslik = r.ad || r.isim || r.numara || r.paket || (r.metin || "").slice(0, 40) || "Kayıt";
+  a.innerHTML = `<div class="ust-b">${ik(BOLUM_AD[s.ad][1])}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(baslik)}</span>
+      <button class="kapat dugme" style="height:26px;padding:0 6px" onclick="$('#ayrinti').style.display='none'">${ik("kapat")}</button></div>
+    ${onizleme}
+    <dl>${kol.map(k => { let v = r[k.alan]; if (v == null || v === "") return "";
+        v = k.tur === "tarih" ? tarih(v) : k.tur === "kurulum" ? kurulum(v, k.alan) : k.tur === "sure" ? sure(v) + ` (${v} sn)` : k.tur === "boyut" ? `${boyut(v)} (${sayi(v)} bayt)` : k.tur === "evet" ? (v ? "Evet" : "Hayır") : v;
+        return `<dt>${esc(k.baslik)}</dt><dd>${esc(v)}</dd>`; }).join("")}</dl>
+    ${s.ad === "kisiler" ? `<div class="etiket-alan"><button class="dugme" onclick="bolumAc('${s.cid}','cagrilar',{anahtar:'${r.id}'},' · ${esc(r.isim || r.numara)}')">${ik("cagri")} Çağrıları</button>
+      <button class="dugme" onclick="bolumAc('${s.cid}','mesajlar',{anahtar:'${r.id}'},' · ${esc(r.isim || r.numara)}')">${ik("mesaj")} Mesajları</button></div>` : ""}
+    ${s.ad === "mesajlar" ? `<div class="etiket-alan"><button class="dugme" onclick="gorusmedeAc(${esc(JSON.stringify(String(r.anahtar)))}, ${r.id})">${ik("mesaj")} Görüşmede göster</button></div>` : ""}
+    <div class="etiket-alan">
+      <textarea id="etiket-not" placeholder="Delil açıklaması (isteğe bağlı)"></textarea>
+      <button class="dugme ${r._etiket ? "" : "ana"}" onclick="etiketle('${s.ad}', ${esc(JSON.stringify(String(r.id)))}, ${esc(JSON.stringify(String(baslik)))}, ${r._etiket ? 1 : 0})">
+        ${ik("yildiz")} ${r._etiket ? "Etiketi kaldır" : "Delil olarak etiketle"}</button></div>`;
+}
+async function etiketle(tur, ref, baslik, sil) {
+  const s = aktifSekme();
+  await api("/api/etiket", {cihaz: s.cid, tur, ref, baslik, aciklama: ($("#etiket-not") || {}).value, sil: !!sil});
+  toast(sil ? "Etiket kaldırıldı" : "Delil olarak etiketlendi");
+  if (D.ozet[s.cid]) D.ozet[s.cid].sayilar.etiketler += sil ? -1 : 1;
+  if (s.tur === "bolum") { await tabloYukle(s); const r = s.veri.satirlar.find(x => String(x.id) === ref); r && satirSec(s, r, $(`#tablo tr.secili`)); }
+  else if (s.tur === "galeri") galeriYukle(s, true);
+}
+
+// ======================================================================= galeri
+async function galeriSayfasi(ana, s) {
+  ana.innerHTML = `<div class="arac" style="background:#fff">
+    <h2>${ik("foto")}Fotoğraf ve video <span class="say" id="say"></span></h2><div class="bosluk"></div>
+    <select id="g-kat"><option value="Görüntü">Fotoğraflar</option><option value="Video" ${s.kategori === "Video" ? "selected" : ""}>Videolar</option></select>
+    <label class="ara-kutu">${ik("ara")}<input id="ara" placeholder="Dosya adı veya klasör..." value="${esc(s.q)}"></label></div>
+    <div id="galeri" class="galeri">${yukleniyor()}</div><div class="sayfalama" id="sayfalama"></div>`;
+  $("#g-kat").onchange = e => { s.kategori = e.target.value; s.sayfa = 1; galeriYukle(s); };
+  $("#ara").addEventListener("input", e => { clearTimeout(e.target._z); e.target._z = setTimeout(() => { s.q = e.target.value; s.sayfa = 1; galeriYukle(s); }, 300); });
+  galeriYukle(s);
+}
+async function galeriYukle(s, sessiz) {
+  const j = await api("/api/bolum?" + qs({cihaz: s.cid, ad: "dosyalar", kategori: s.kategori, q: s.q, sayfa: s.sayfa, boyut: 120, ...s.filtre}));
+  if (D.aktif !== s.anahtar || !$("#galeri")) return;
+  s.veri = j;
+  $("#say").textContent = sayi(j.toplam);
+  $("#galeri").innerHTML = j.satirlar.map((r, i) => `<div class="oge" onclick="isikAc(${i})">
+      ${r.kategori === "Video" ? `<video preload="metadata" src="${dosyaUrl(s.cid, r.cikarma, r.yol)}#t=0.5" muted style="width:100%;height:100%;object-fit:cover"></video><div class="vid">${ik("oynat")}</div>`
+        : `<img loading="lazy" src="${dosyaUrl(s.cid, r.cikarma, r.yol)}" alt="">`}
+      ${r._etiket ? `<span class="yildiz">${ik("yildiz")}</span>` : ""}<div class="alt-yazi">${tarih(r.mtime, false)}</div></div>`).join("")
+    || `<div class="bos-durum" style="grid-column:1/-1">${ik("foto")}Kayıt yok</div>`;
+  const ss = Math.ceil(j.toplam / j.boyut) || 1;
+  $("#sayfalama").innerHTML = `<button class="dugme" ${s.sayfa <= 1 ? "disabled" : ""} onclick="galeriSayfa(-1)">‹ Önceki</button>
+    Sayfa ${s.sayfa} / ${ss}<button class="dugme" ${s.sayfa >= ss ? "disabled" : ""} onclick="galeriSayfa(1)">Sonraki ›</button>`;
+  if (!sessiz) $("#ana").scrollTop = 0;
+  if (s.isik != null) isikAc(s.isik);
+}
+function galeriSayfa(d) { const s = aktifSekme(); s.sayfa += d; galeriYukle(s); }
+function isikAc(i) {
+  const s = aktifSekme(), r = s.veri.satirlar[i];
+  if (!r) return;
+  s.isik = i;
+  const url = dosyaUrl(s.cid, r.cikarma, r.yol);
+  let el = $("#isik");
+  if (!el) { el = document.createElement("div"); el.id = "isik"; el.className = "isik"; document.body.appendChild(el); }
+  el.innerHTML = `<div class="resim">${r.kategori === "Video" ? `<video src="${url}" controls autoplay></video>` : `<img src="${url}">`}</div>
+    <button class="kapat-b" onclick="isikKapat()">${ik("kapat")} Kapat (Esc)</button>
+    ${i > 0 ? `<button class="gez" style="left:14px" onclick="isikAc(${i - 1})">‹</button>` : ""}
+    ${i < s.veri.satirlar.length - 1 ? `<button class="gez" style="right:374px" onclick="isikAc(${i + 1})">›</button>` : ""}
+    <div class="yan"><div class="ust-b" style="padding:12px 14px;font-weight:600;border-bottom:1px solid var(--kenar2)">${esc(r.ad)}</div>
+      <dl style="margin:0;padding:10px 14px;display:grid;grid-template-columns:100px 1fr;gap:6px 10px">
+        <dt style="color:var(--soluk)">Değiştirme</dt><dd style="margin:0">${tarih(r.mtime)}</dd>
+        <dt style="color:var(--soluk)">Boyut</dt><dd style="margin:0">${boyut(r.boyut)}</dd>
+        <dt style="color:var(--soluk)">Uygulama</dt><dd style="margin:0">${esc(r.uygulama || "-")}</dd>
+        <dt style="color:var(--soluk)">Yol</dt><dd style="margin:0;word-break:break-all">${esc(r.yol)}</dd></dl>
+      <div class="etiket-alan"><textarea id="etiket-not" placeholder="Delil açıklaması (isteğe bağlı)"></textarea>
+        <button class="dugme ${r._etiket ? "" : "ana"}" onclick="etiketle('dosyalar', '${r.id}', ${esc(JSON.stringify(r.ad))}, ${r._etiket ? 1 : 0})">${ik("yildiz")} ${r._etiket ? "Etiketi kaldır" : "Delil olarak etiketle"}</button>
+        <a class="dugme" href="${dosyaUrl(s.cid, r.cikarma, r.yol, 1)}">${ik("indir")} Dışa aktar</a></div></div>`;
+}
+function isikKapat() { const s = aktifSekme(); s && (s.isik = null); $("#isik") && $("#isik").remove(); }
+document.addEventListener("keydown", e => {
+  if (!$("#isik")) return;
+  const s = aktifSekme();
+  if (e.key === "Escape") isikKapat();
+  if (e.key === "ArrowRight") isikAc(s.isik + 1);
+  if (e.key === "ArrowLeft") isikAc(s.isik - 1);
+});
+
+// ======================================================================= zaman çizelgesi
+async function zamanSayfasi(ana, s) {
+  s.turler = s.turler || ["cagri", "mesaj", "not", "medya"];
+  s.sayfa = s.sayfa || 1;
+  ana.innerHTML = `<div class="arac" style="background:#fff;position:sticky;top:0;z-index:2">
+    <h2>${ik("zaman")}Zaman çizelgesi <span class="say" id="say"></span></h2>
+    <div class="secenekler">${[["cagri", "Çağrılar"], ["mesaj", "Mesajlar"], ["not", "Notlar"], ["medya", "Fotoğraf/video"]].map(([k, b]) =>
+      `<label><input type="checkbox" value="${k}" ${s.turler.includes(k) ? "checked" : ""}> ${b}</label>`).join("")}</div>
+    <div class="bosluk"></div>
+    <input type="date" id="bas" class="dugme" title="Başlangıç"> <input type="date" id="bit" class="dugme" title="Bitiş">
+    <label class="ara-kutu">${ik("ara")}<input id="ara" placeholder="Kişi, numara veya metin..." value="${esc(s.q || "")}"></label></div>
+    <div class="zaman" id="zaman">${yukleniyor()}</div><div class="sayfalama" id="sayfalama"></div>`;
+  ana.querySelectorAll(".secenekler input").forEach(c => c.onchange = () => { s.turler = [...ana.querySelectorAll(".secenekler input:checked")].map(x => x.value); s.sayfa = 1; zamanYukle(s); });
+  $("#ara").addEventListener("input", e => { clearTimeout(e.target._z); e.target._z = setTimeout(() => { s.q = e.target.value; s.sayfa = 1; zamanYukle(s); }, 300); });
+  ["bas", "bit"].forEach(k => $("#" + k).onchange = e => { s[k] = e.target.value ? new Date(e.target.value + (k === "bit" ? "T23:59:59" : "T00:00:00")).getTime() : ""; s.sayfa = 1; zamanYukle(s); });
+  zamanYukle(s);
+}
+async function zamanYukle(s) {
+  const j = await api("/api/zaman?" + qs({cihaz: s.cid, turler: s.turler.join(","), q: s.q, bas: s.bas, bit: s.bit, sayfa: s.sayfa}));
+  if (D.aktif !== s.anahtar || !$("#zaman")) return;
+  $("#say").textContent = sayi(j.toplam) + " olay";
+  let son = "", h = "";
+  const IKN = {cagri: "cagri", mesaj: "mesaj", not: "not", medya: "foto"};
+  for (const o of j.olaylar) {
+    const g = new Date(+o.tarih).toDateString();
+    if (g !== son) { h += `<div class="gun">${esc(gunAdi(o.tarih))}</div>`; son = g; }
+    const resim = o.tur === "medya" && RESIM.test(o.ek || "") ? `<img loading="lazy" src="${dosyaUrl(s.cid, o.cikarma, o.yol)}">` : "";
+    const ek = o.tur === "cagri" ? "Süre " + sure(o.ek) : o.ek;
+    h += `<div class="olay" onclick='zamanOlay(${JSON.stringify({tur: o.tur, kim: o.kim || ""})})'>
+      <div class="saat">${tarih(o.tarih).slice(11, 16)}</div><div class="tikon ${o.tur}">${ik(IKN[o.tur])}</div>
+      <div class="ic"><div class="b">${esc(o.baslik)}${o.kim ? " · " + esc(o.kim) : ""}</div><div class="m">${esc(ek || "")}</div></div>${resim}</div>`;
+  }
+  $("#zaman").innerHTML = h || `<div class="bos-durum">${ik("zaman")}Olay yok</div>`;
+  const ss = Math.ceil(j.toplam / 200) || 1;
+  $("#sayfalama").innerHTML = `<button class="dugme" ${s.sayfa <= 1 ? "disabled" : ""} onclick="zamanSayfa(-1)">‹ Daha yeni</button>
+    Sayfa ${s.sayfa} / ${ss}<button class="dugme" ${s.sayfa >= ss ? "disabled" : ""} onclick="zamanSayfa(1)">Daha eski ›</button>`;
+}
+function zamanSayfa(d) { const s = aktifSekme(); s.sayfa += d; zamanYukle(s); $("#ana").scrollTop = 0; }
+function zamanOlay(o) {
+  const s = aktifSekme();
+  if (o.tur === "cagri") bolumAc(s.cid, "cagrilar"); else if (o.tur === "mesaj") bolumAc(s.cid, "mesajlar");
+  else if (o.tur === "not") bolumAc(s.cid, "notlar"); else galeriAc(s.cid);
+  const y = aktifSekme(); if (o.kim && y.tur === "bolum") { y.q = o.kim; ciz(); }
+}
+
+// ======================================================================= istatistik
+async function istatistikSayfasi(ana, s) {
+  ana.innerHTML = yukleniyor();
+  const j = await api("/api/istatistik?cihaz=" + s.cid);
+  if (D.aktif !== s.anahtar) return;
+  const cubuk = (liste, alan, fmt = sayi, ad = r => r.ad) => {
+    const max = Math.max(1, ...liste.map(r => +r[alan] || 0));
+    return liste.map(r => `<div class="cubuk"><div class="ad" title="${esc(ad(r))}">${esc(ad(r) || "-")}</div><div class="bar"><i style="width:${(+r[alan] || 0) / max * 100}%"></i></div><div class="deger">${fmt(r[alan])}</div></div>`).join("")
+      || `<div style="color:var(--soluk)">Veri yok</div>`;
+  };
+  const aylik = [...j.aylik].reverse(), maxA = Math.max(1, ...aylik.map(r => r.cagri + r.mesaj));
+  const saat = Array.from({length: 24}, (_, h) => (j.saatlik.find(x => x.saat === h) || {adet: 0}).adet), maxS = Math.max(1, ...saat);
+  ana.innerHTML = `<div class="arac" style="background:#fff"><h2>${ik("istatistik")}İstatistik</h2></div><div class="grafikler">
+    <div class="grafik"><h3>Dosya türleri (boyut)</h3>${cubuk(j.kategoriler, "boyut", boyut)}</div>
+    <div class="grafik"><h3>En çok yer kaplayan uygulamalar</h3>${cubuk(j.uygulama_boyut, "boyut", boyut)}</div>
+    <div class="grafik"><h3>En çok iletişim kurulan kişiler</h3>${cubuk(j.en_cok, "toplam", sayi, r => r.isim || r.numara)}</div>
+    <div class="grafik"><h3>Çağrı türleri</h3>${cubuk(j.cagri_tur, "adet")}</div>
+    <div class="grafik"><h3>Mesajlar</h3>${cubuk(j.mesaj_yon, "adet")}</div>
+    <div class="grafik"><h3>Aylık iletişim <span style="font-weight:400;color:var(--soluk);font-size:12px">■ çağrı <span style="color:#8b5cf6">■</span> mesaj</span></h3>
+      <div class="sutunlar">${aylik.map(r => `<div class="s" title="${r.ay}: ${r.cagri} çağrı, ${r.mesaj} mesaj">
+        <i class="m" style="height:${r.mesaj / maxA * 100}%"></i><i style="height:${r.cagri / maxA * 100}%;margin-top:-3px"></i>${r.ay.slice(2)}</div>`).join("") || "Veri yok"}</div></div>
+    <div class="grafik"><h3>Günün saatlerine göre iletişim</h3><div class="sutunlar">${saat.map((v, h) => `<div class="s" title="${h}:00 - ${v}"><i style="height:${v / maxS * 100}%"></i>${h}</div>`).join("")}</div></div>
+  </div>`;
+}
+
+// ======================================================================= arama
+async function aramaSayfasi(ana, s) {
+  ana.innerHTML = `<div class="arac" style="background:#fff"><h2>${ik("ara")}Arama</h2>
+    <label class="ara-kutu" style="flex:1;max-width:600px">${ik("ara")}<input id="genel-ara" placeholder="Numara, isim, mesaj metni, dosya adı, not..." value="${esc(s.q || "")}" autofocus></label></div>
+    <div id="sonuc" style="padding:4px 0"></div>`;
+  const yap = async () => {
+    const q = $("#genel-ara").value.trim(); s.q = q;
+    if (q.length < 2) { $("#sonuc").innerHTML = `<div class="bos-durum">${ik("ara")}En az 2 karakter yazın. Tüm bölümlerde aranır.</div>`; return; }
+    $("#sonuc").innerHTML = yukleniyor();
+    const j = await api("/api/ara?" + qs({cihaz: s.cid, q}));
+    const anahtarlar = Object.keys(j);
+    $("#sonuc").innerHTML = anahtarlar.length ? anahtarlar.map(ad => {
+      const v = j[ad], [b, ikon] = BOLUM_AD[ad];
+      return `<div class="kart" style="margin:12px 14px"><div class="arac"><h2>${ik(ikon)}${b} <span class="say">${sayi(v.toplam)} sonuç</span></h2><div class="bosluk"></div>
+        <button class="dugme" onclick='aramaBolum("${ad}")'>Tümünü göster</button></div>
+        <table class="veri"><thead><tr>${v.kolonlar.slice(0, 5).map(k => `<th>${esc(k.baslik)}</th>`).join("")}</tr></thead><tbody>
+        ${v.satirlar.slice(0, 8).map(r => `<tr onclick='aramaBolum("${ad}")'>${v.kolonlar.slice(0, 5).map(k => {
+          const x = r[k.alan]; return `<td class="${k.tur === "uzun" ? "uzun" : ""}">${k.tur === "uzun" ? "<div>" : ""}${esc(k.tur === "tarih" ? tarih(x) : k.tur === "kurulum" ? kurulum(x, k.alan) : k.tur === "boyut" ? boyut(x) : k.tur === "sure" ? sure(x) : x)}${k.tur === "uzun" ? "</div>" : ""}</td>`; }).join("")}</tr>`).join("")}
+        </tbody></table></div>`; }).join("") : `<div class="bos-durum">${ik("ara")}“${esc(q)}” için sonuç yok</div>`;
+  };
+  $("#genel-ara").addEventListener("input", e => { clearTimeout(e.target._z); e.target._z = setTimeout(yap, 350); });
+  yap();
+}
+function aramaBolum(ad) { const s = aktifSekme(); const q = s.q; bolumAc(s.cid, ad); const y = aktifSekme(); y.q = q; ciz(); }
+
+// ======================================================================= etiketli deliller
+async function etiketSayfasi(ana, s) {
+  ana.innerHTML = yukleniyor();
+  const j = await api("/api/etiketler?cihaz=" + s.cid);
+  if (D.aktif !== s.anahtar) return;
+  ana.innerHTML = `<div class="arac" style="background:#fff"><h2>${ik("etiket")}Etiketli deliller <span class="say">${j.length}</span></h2><div class="bosluk"></div>
+    <button class="dugme" onclick="raporAc('${s.cid}')">${ik("rapor")} Raporda göster</button></div>
+    ${j.length ? `<table class="veri"><thead><tr><th>Bölüm</th><th>Öğe</th><th>Açıklama</th><th>Etiketleme zamanı</th><th></th></tr></thead><tbody>
+      ${j.map(e => `<tr><td><span class="rozet">${esc((BOLUM_AD[e.tur] || [e.tur])[0])}</span></td><td>${esc(e.baslik)}</td><td class="uzun"><div>${esc(e.aciklama || "")}</div></td>
+        <td>${esc((e.tarih || "").replace("T", " "))}</td><td><button class="dugme" onclick='etiketSil(${JSON.stringify(e.tur)}, ${JSON.stringify(e.ref)})'>Kaldır</button></td></tr>`).join("")}</tbody></table>`
+    : `<div class="bos-durum">${ik("etiket")}Henüz etiketli delil yok.<br>Herhangi bir kaydı açıp “Delil olarak etiketle” düğmesine basın.</div>`}`;
+}
+async function etiketSil(tur, ref) { const s = aktifSekme(); await api("/api/etiket", {cihaz: s.cid, tur, ref, sil: true}); D.ozet[s.cid] && D.ozet[s.cid].sayilar.etiketler--; toast("Etiket kaldırıldı"); ciz(); }
+
+// ======================================================================= WhatsApp
+async function whatsappSayfasi(ana, s) {
+  ana.innerHTML = yukleniyor();
+  const j = await api("/api/whatsapp?" + qs({cihaz: s.cid, paket: s.paket}));
+  if (D.aktif !== s.anahtar) return;
+  ana.innerHTML = `<div class="arac" style="background:#fff"><h2><span style="color:#25d366">${ik("mesaj")}</span>${esc(j.ad)} <span class="say">${j.hesaplar.length} hesap</span></h2></div>
+    <div class="bilgi"><b>Mesaj yedekleri şifrelidir.</b> Yedeğin yanındaki <b>Anahtar gir</b> düğmesiyle 64 haneli uçtan uca yedek anahtarını
+      veya anahtar dosyasını girerseniz sohbetler çözülüp burada görüntülenir. Anahtar saklanmaz; çözülen veritabanı delil klasörüne yazılmaz.</div>
+    ${j.hesaplar.map(h => `<div class="wa-hesap"><h3>${ik("kisi")} ${h.hesap === "ana" ? "Ana hesap" : "Ek hesap " + esc(h.hesap)}
+        <span style="font-weight:400;color:var(--soluk)">· ${sayi(h.adet)} dosya · ${boyut(h.boyut)}</span><div class="bosluk" style="flex:1"></div>
+        <button class="dugme" onclick='bolumAc("${s.cid}","dosyalar",${JSON.stringify(h.hesap === "ana" ? {uygulama: j.paket} : {uygulama: j.paket, hesap: h.hesap})}," · ${esc(j.ad)} ${h.hesap === "ana" ? "" : esc(h.hesap)}")'>Tüm dosyalar</button>
+        <button class="dugme" onclick='galeriAc("${s.cid}",${JSON.stringify(h.hesap === "ana" ? {uygulama: j.paket} : {uygulama: j.paket, hesap: h.hesap})})'>${ik("foto")} Medya</button></h3>
+      <div class="ic"><div><b>Mesaj veritabanı yedekleri</b>
+        <table class="veri" style="margin-top:6px"><thead><tr><th>Dosya</th><th>Tarih</th><th>Boyut</th><th></th></tr></thead><tbody>
+        ${h.yedekler.map(y => `<tr><td>${esc(y.ad)}</td><td>${tarih(y.mtime)}</td><td>${boyut(y.boyut)}</td>
+          <td style="white-space:nowrap">${!/\.crypt\d+$/i.test(y.ad) && !/\.db$/i.test(y.ad) ? "" : y.cozulen
+            ? `<button class="dugme ana" onclick='waSohbetAc(${esc(JSON.stringify({cid: s.cid, c: y.cikarma, yol: y.yol, ad: y.ad, hesap: h.hesap}))})'>${ik("mesaj")} Sohbetler (${sayi(y.cozulen.sohbet)})</button>`
+            : `<button class="dugme" onclick='waAnahtar(${esc(JSON.stringify({cid: s.cid, c: y.cikarma, yol: y.yol, ad: y.ad, hesap: h.hesap}))})'>${ik("anahtar")} Anahtar gir</button>`}</td></tr>`).join("")
+          || `<tr><td colspan="4">Yedek bulunamadı</td></tr>`}</tbody></table></div>
+      <div><b>Medya klasörleri</b>${h.medya.map(m => `<div class="cubuk" style="grid-template-columns:1fr 70px 70px"><div class="ad">${esc(m.klasor)}</div>
+        <div class="deger">${sayi(m.adet)}</div><div class="deger">${boyut(m.boyut)}</div></div>`).join("")}</div></div></div>`).join("")}`;
+}
+// ----------------------------------------------------------------------- WhatsApp: anahtar ve sohbetler
+function waAnahtar(y) {
+  const p = document.createElement("div");
+  p.className = "hakkinda pencere";
+  p.innerHTML = `<div>
+    <h2>${ik("anahtar")} WhatsApp yedeğini çöz</h2>
+    <p class="aciklama">${esc(y.ad)} · ${y.hesap === "ana" ? "Ana hesap" : "Ek hesap " + esc(y.hesap)}</p>
+    <label class="b">64 haneli şifreleme anahtarı</label>
+    <textarea id="wa-hex" rows="3" spellcheck="false" placeholder="ör. 1a2b 3c4d … (64 karakter; boşluk ve tireler önemsiz)"
+      style="width:100%;font:13px Consolas,monospace;border:1px solid var(--kenar);border-radius:4px;padding:8px"></textarea>
+    <div class="soluk" style="margin:4px 0 12px;font-size:12px">WhatsApp &gt; Ayarlar &gt; Sohbetler &gt; Sohbet yedeği &gt; Uçtan uca şifreli yedekleme
+      açılırken kaydedilen anahtar (crypt15).</div>
+    <label class="b">veya anahtar dosyası</label>
+    <div style="display:flex;gap:8px;align-items:center"><label class="dugme">${ik("dosya")} Dosya seç<input type="file" id="wa-dosya" hidden></label>
+      <span class="soluk" id="wa-dosya-ad">Seçilmedi</span></div>
+    <div class="soluk" style="margin:4px 0 12px;font-size:12px"><code>encrypted_backup.key</code> (crypt15) veya root ile alınmış
+      <code>/data/data/com.whatsapp/files/key</code> (crypt12 / crypt14).</div>
+    <div class="uyari" style="margin:0 0 10px;font-size:12px">Uçtan uca yedek için 64 haneli anahtar yerine <b>parola</b> seçildiyse yedek
+      WhatsApp sunucusu olmadan çözülemez.</div>
+    <div id="wa-durum" style="min-height:18px"></div>
+    <div class="alt-d"><button class="dugme" id="wa-iptal">İptal</button><button class="dugme ana" id="wa-coz">${ik("anahtar")} Çöz</button></div></div>`;
+  document.body.appendChild(p);
+  let dosya = null;
+  $("#wa-dosya", p).onchange = e => {
+    const f = e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = () => { dosya = r.result.split(",")[1]; $("#wa-dosya-ad", p).textContent = `${f.name} (${f.size} bayt)`; };
+    r.readAsDataURL(f);
+  };
+  $("#wa-iptal", p).onclick = () => p.remove();
+  $("#wa-coz", p).onclick = async () => {
+    const b = $("#wa-coz", p);
+    b.disabled = true; $("#wa-durum", p).innerHTML = `<span class="soluk">Çözülüyor... (büyük yedeklerde birkaç saniye sürer)</span>`;
+    try {
+      const j = await api("/api/wa_coz", {cihaz: y.cid, c: y.c, yol: y.yol, anahtar: $("#wa-hex", p).value, dosya_b64: dosya});
+      p.remove();
+      toast(`Çözüldü: ${sayi(j.sohbet)} sohbet, ${sayi(j.mesaj)} mesaj`);
+      ciz();
+      waSohbetAc(y);
+    } catch (e) { $("#wa-durum", p).innerHTML = `<b style="color:var(--kirmizi)">${esc(e.message)}</b>`; b.disabled = false; }
+  };
+  $("#wa-hex", p).focus();
+}
+function waSohbetAc(y) {
+  const g = D.cihazlar.find(x => x.id === y.cid);
+  sekmeAc({anahtar: `wasohbet-${y.cid}-${y.c}-${y.yol}`, tur: "wasohbet", cid: y.cid, y, baslik: `WhatsApp sohbetleri - ${g.baslik}`,
+    ikon: "mesaj", sohbet: null, q: ""});
+}
+const waSaat = ms => { const d = new Date(+ms); return `${iki(d.getHours())}:${iki(d.getMinutes())}`; };
+async function waSohbetSayfasi(ana, s) {
+  if (!s.liste) {
+    ana.innerHTML = yukleniyor("Sohbetler okunuyor...");
+    try { s.liste = await api("/api/wa_sohbetler?" + qs({cihaz: s.cid, c: s.y.c, yol: s.y.yol})); }
+    catch (e) { ana.innerHTML = `<div class="sayfa"><div class="uyari">${esc(e.message)}</div></div>`; return; }
+    if (D.aktif !== s.anahtar) return;
+  }
+  const k = s.liste.kayit;
+  ana.innerHTML = `<div class="wa-duzen">
+    <div class="wa-liste"><div class="wa-liste-ust"><div class="ara-kutu" style="min-width:0">${ik("ara")}<input id="wa-ara" placeholder="Sohbet ara" value="${esc(s.q)}"></div>
+      <div class="soluk" style="font-size:11.5px;margin-top:6px">${esc(s.y.ad)} · ${sayi(k.sohbet)} sohbet · ${sayi(k.mesaj)} mesaj
+        ${k.dogrulandi ? "" : " · <span title='GCM etiketi doğrulanamadı; içerik SQLite olarak doğrulandı'>etiket doğrulanmadı</span>"}</div></div>
+      <div id="wa-sohbetler"></div></div>
+    <div class="wa-sohbet" id="wa-sohbet"><div class="bos-durum">${ik("mesaj")}Soldan bir sohbet seçin</div></div></div>`;
+  const listeCiz = () => {
+    const f = s.q.toLocaleLowerCase("tr");
+    $("#wa-sohbetler").innerHTML = s.liste.sohbetler.filter(c => !f || (c.ad + " " + (c.jid || "")).toLocaleLowerCase("tr").includes(f)).map(c => `
+      <div class="wa-oge ${String(s.sohbet) === String(c.id) ? "secili" : ""}" data-id="${esc(c.id)}">
+        <div class="wa-av ${c.grup ? "g" : ""}">${ik("kisi")}</div>
+        <div class="wa-oge-ic"><div class="wa-u"><b>${esc(c.ad)}</b><span>${tarih(c.son, false).slice(0, 10)}</span></div>
+          <div class="wa-a"><span>${esc((c.son_metin || "").slice(0, 80))}</span><i>${sayi(c.adet)}</i></div></div></div>`).join("")
+      || `<div class="soluk" style="padding:14px">Sohbet bulunamadı</div>`;
+  };
+  listeCiz();
+  $("#wa-ara").oninput = e => { s.q = e.target.value; listeCiz(); };
+  $("#wa-sohbetler").onclick = e => { const o = e.target.closest(".wa-oge"); if (!o) return; s.sohbet = o.dataset.id; s.sayfa = null; listeCiz(); waMesajYukle(s); };
+  if (s.sohbet) waMesajYukle(s);
+}
+async function waMesajYukle(s, sayfa) {
+  const c = s.liste.sohbetler.find(x => String(x.id) === String(s.sohbet));
+  const alan = $("#wa-sohbet");
+  alan.innerHTML = yukleniyor();
+  const j = await api("/api/wa_mesajlar?" + qs({cihaz: s.cid, c: s.y.c, yol: s.y.yol, sohbet: s.sohbet, sayfa: sayfa || ""}));
+  if (D.aktif !== s.anahtar || String(c.id) !== String(s.sohbet)) return;
+  let gun = "";
+  const balon = m => {
+    const g = new Date(+m.tarih).toDateString();
+    const ayrac = g !== gun ? (gun = g, `<div class="wa-gun"><span>${esc(gunAdi(m.tarih))}</span></div>`) : "";
+    if (m.tur === 7 || m.tur === 11) return ayrac + `<div class="wa-sistem">${esc(m.metin || m.tur_adi)}</div>`;
+    const url = m.medya_yol ? dosyaUrl(s.cid, m.medya_c, m.medya_yol) : null;
+    const ad = m.dosya ? m.dosya.split("/").pop() : "";
+    let medya = "";
+    if (m.dosya || [1, 2, 3, 9, 13, 20, 42, 43].includes(m.tur)) {
+      medya = !url ? `<div class="wa-medya-yok">${ik("dosya")} ${esc(m.tur_adi)}${ad ? ": " + esc(ad) : ""} <span>(dosya yedekte yok)</span></div>`
+        : RESIM.test(ad) || m.tur === 1 || m.tur === 20 ? `<a href="${url}" target="_blank"><img loading="lazy" src="${url}"></a>`
+        : VIDEO.test(ad) || m.tur === 3 || m.tur === 13 ? `<video preload="none" controls src="${url}"></video>`
+        : SES.test(ad) || m.tur === 2 ? `<audio preload="none" controls src="${url}"></audio>`
+        : `<a class="wa-belge" href="${url}" target="_blank">${ik("dosya")} ${esc(ad)}</a>`;
+    }
+    const gonderen = c.grup && !m.ben && m.gonderen_ad ? `<div class="wa-kim">${esc(m.gonderen_ad)}</div>` : "";
+    const metin = m.metin && !(m.tur === 15) ? `<div class="wa-metin">${esc(m.metin)}</div>` : m.tur === 15 ? `<div class="wa-metin soluk"><i>Bu mesaj silindi</i></div>`
+      : !medya ? `<div class="wa-metin soluk"><i>${esc(m.tur_adi)}</i></div>` : "";
+    return ayrac + `<div class="wa-b ${m.ben ? "ben" : ""}">${gonderen}${medya}${metin}<div class="wa-zaman" title="${tarih(m.tarih)}">${waSaat(m.tarih)}</div></div>`;
+  };
+  alan.innerHTML = `<div class="wa-sohbet-ust"><div class="wa-av ${c.grup ? "g" : ""}">${ik("kisi")}</div>
+      <div><b>${esc(c.ad)}</b><div class="soluk" style="font-size:12px">${esc(c.jid || "")} · ${sayi(j.toplam)} mesaj</div></div></div>
+    <div class="wa-akis" id="wa-akis">
+      ${j.sayfa > 1 ? `<div style="text-align:center;margin:6px"><button class="dugme" onclick="waMesajYukle(aktifSekme(), ${j.sayfa - 1})">Daha eski mesajlar (${j.sayfa - 1}/${j.son_sayfa})</button></div>` : ""}
+      ${j.mesajlar.map(balon).join("")}
+      ${j.sayfa < j.son_sayfa ? `<div style="text-align:center;margin:6px"><button class="dugme" onclick="waMesajYukle(aktifSekme(), ${j.sayfa + 1})">Daha yeni mesajlar</button></div>` : ""}</div>`;
+  const akis = $("#wa-akis");
+  akis.scrollTop = sayfa && sayfa < j.son_sayfa ? 0 : akis.scrollHeight;
+}
+// ======================================================================= mesajlar: görüşme görünümü
+function gorusmedeAc(anahtar, mesaj) {
+  const s = aktifSekme();
+  s.gorunum = "gorusme"; s.gorusme = anahtar; s.hedefMesaj = mesaj; s.gq = "";
+  try { localStorage.setItem("ambar_mesaj_gorunum", "gorusme"); } catch (e) {}
+  ciz();
+}
+const vurgula = (metin, q) => {
+  const e = esc(metin || "");
+  if (!q) return e;
+  const k = esc(q).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return e.replace(new RegExp(k, "gi"), m => `<mark>${m}</mark>`);
+};
+async function mesajGorusmeSayfasi(ana, s) {
+  s.gq = s.gq ?? (s.q || "");
+  const filtreKaynak = (s.filtre && s.filtre.kaynak) || s.gkaynak || "";
+  ana.innerHTML = `<div class="wa-duzen">
+    <div class="wa-liste"><div class="wa-liste-ust">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">${mesajGorunumSecici(s)}
+          <select id="g-kaynak" style="flex:1;min-width:0">${["", "SMS", "MMS", "SIM SMS"].map(v => `<option value="${v}" ${filtreKaynak === v ? "selected" : ""}>${v || "Tüm mesajlar"}</option>`).join("")}</select></div>
+        <div class="ara-kutu" style="min-width:0">${ik("ara")}<input id="g-ara" placeholder="Kişi, numara veya mesaj ara" value="${esc(s.gq)}"></div>
+        <div class="soluk" id="g-say" style="font-size:11.5px;margin-top:6px"></div></div>
+      <div id="wa-sohbetler">${yukleniyor()}</div></div>
+    <div class="wa-sohbet" id="wa-sohbet"><div class="bos-durum">${ik("mesaj")}Soldan bir görüşme seçin</div></div></div>`;
+  const yukle = async () => {
+    const j = await api("/api/mesaj_konusmalar?" + qs({cihaz: s.cid, q: s.gq, kaynak: filtreKaynakAl()}));
+    if (D.aktif !== s.anahtar) return;
+    s.konusmalar = j.konusmalar;
+    // tablo filtresinden (ör. kişiden gelindiyse) ilgili görüşmeyi aç
+    if (!s.gorusme && s.filtre && s.filtre.anahtar) s.gorusme = s.filtre.anahtar;
+    $("#g-say").textContent = `${sayi(j.toplam)} görüşme`;
+    listeCiz();
+    if (s.gorusme) gorusmeYukle(s, null, s.hedefMesaj);
+  };
+  const filtreKaynakAl = () => ($("#g-kaynak") || {}).value || "";
+  const listeCiz = () => {
+    $("#wa-sohbetler").innerHTML = (s.konusmalar || []).map(c => `
+      <div class="wa-oge ${String(s.gorusme) === String(c.id) ? "secili" : ""}" data-id="${esc(c.id)}">
+        <div class="wa-av harf" style="background:${c.id === "_" ? "#9aa3af" : harfRenk(c.id)}">${esc(((c.ad || "?").replace(/^\+/, "")[0] || "?").toUpperCase())}</div>
+        <div class="wa-oge-ic"><div class="wa-u"><b title="${esc(c.numara || "")}">${esc(c.ad)}</b><span>${tarih(c.son, false).slice(0, 10)}</span></div>
+          <div class="wa-a"><span>${esc((c.son_metin || "").slice(0, 80))}</span><i class="${c.okunmamis ? "" : "gri"}" title="${c.okunmamis ? sayi(c.okunmamis) + " okunmamış" : ""}">${sayi(c.adet)}</i></div></div></div>`).join("")
+      || `<div class="soluk" style="padding:14px">Görüşme bulunamadı</div>`;
+  };
+  $("#g-ara").oninput = e => { clearTimeout(e.target._z); e.target._z = setTimeout(() => { s.gq = e.target.value; yukle(); }, 300); };
+  $("#g-kaynak").onchange = e => { s.gkaynak = e.target.value; if (s.filtre) delete s.filtre.kaynak; yukle(); };
+  $("#wa-sohbetler").onclick = e => { const o = e.target.closest(".wa-oge"); if (!o) return; s.gorusme = o.dataset.id; s.hedefMesaj = null; listeCiz(); gorusmeYukle(s); };
+  try { await yukle(); } catch (e) { $("#wa-sohbetler").innerHTML = `<div class="uyari" style="margin:12px">${esc(e.message)}</div>`; }
+}
+async function gorusmeYukle(s, sayfa, hedef) {
+  const alan = $("#wa-sohbet");
+  if (!alan) return;
+  const id = s.gorusme;
+  alan.innerHTML = yukleniyor();
+  const j = await api("/api/mesaj_konusmasi?" + qs({cihaz: s.cid, id, sayfa: sayfa || "", mesaj: hedef || ""}));
+  if (D.aktif !== s.anahtar || String(s.gorusme) !== String(id)) return;
+  const c = (s.konusmalar || []).find(x => String(x.id) === String(id)) || {};
+  const ad = j.ad || c.ad || j.numara || "Numarasız mesajlar";
+  let gun = "";
+  const balon = m => {
+    const g = m.tarih ? new Date(+m.tarih).toDateString() : "?";
+    const ayrac = g !== gun ? (gun = g, `<div class="wa-gun"><span>${m.tarih ? esc(gunAdi(m.tarih)) : "Tarih yok"}</span></div>`) : "";
+    const durum = !["Gelen", "Giden"].includes(m.yon) ? `<span class="${/Gönderilemedi|Gönderilmemiş/.test(m.yon) ? "uyar" : ""}">${esc(m.yon)}</span>` : "";
+    const okunmadi = m.yon === "Gelen" && m.okundu === "Hayır" ? `<span title="Telefonda okunmamış">● okunmadı</span>` : "";
+    const metin = m.metin ? `<div class="wa-metin">${vurgula(m.metin, s.gq)}</div>` : `<div class="wa-metin soluk"><i>${m.kaynak === "MMS" ? "MMS (metin yok)" : "Boş mesaj"}</i></div>`;
+    return ayrac + `<div class="wa-b ${m.ben ? "ben" : ""} ${m._etiket ? "etiketli" : ""} ${String(m.id) === String(hedef) ? "hedef" : ""}" data-m="${m.id}">
+      ${metin}<div class="alt-bilgi">${m._etiket ? ik("yildiz") : ""}${okunmadi}${durum}${m.sim ? `<span>${esc(/^\d+$/.test(m.sim) ? "SIM #" + m.sim : m.sim)}</span>` : ""}
+        <span class="kyn">${esc(m.kaynak)}</span><span title="${tarih(m.tarih)}">${m.tarih ? waSaat(m.tarih) : ""}</span></div></div>`;
+  };
+  alan.innerHTML = `<div class="wa-sohbet-ust"><div class="wa-av harf" style="background:${id === "_" ? "#9aa3af" : harfRenk(id)}">${esc((ad.replace(/^\+/, "")[0] || "?").toUpperCase())}</div>
+      <div style="flex:1;min-width:0"><b>${esc(ad)}</b><div class="soluk" style="font-size:12px">${esc(j.numara && j.numara !== ad ? j.numara + " · " : "")}${sayi(j.toplam)} mesaj</div></div>
+      <button class="dugme" title="Bu kişinin mesajlarını tablo olarak göster" onclick="gorusmeTablo('${s.cid}', ${esc(JSON.stringify(String(id)))}, ${esc(JSON.stringify(ad))})">${ik("liste")} Tabloda aç</button></div>
+    <div class="wa-akis" id="wa-akis">
+      ${j.sayfa > 1 ? `<div style="text-align:center;margin:6px"><button class="dugme" onclick="gorusmeYukle(aktifSekme(), ${j.sayfa - 1})">Daha eski mesajlar (${j.sayfa - 1}/${j.son_sayfa})</button></div>` : ""}
+      ${j.mesajlar.map(balon).join("")}
+      ${j.sayfa < j.son_sayfa ? `<div style="text-align:center;margin:6px"><button class="dugme" onclick="gorusmeYukle(aktifSekme(), ${j.sayfa + 1})">Daha yeni mesajlar</button></div>` : ""}</div>`;
+  const akis = $("#wa-akis");
+  const h = hedef && akis.querySelector(`[data-m="${hedef}"]`);
+  if (h) h.scrollIntoView({block: "center"});
+  else akis.scrollTop = sayfa && sayfa < j.son_sayfa ? 0 : akis.scrollHeight;
+  s.hedefMesaj = null;
+}
+function gorusmeTablo(cid, anahtar, ad) {
+  aktifSekme().gorunum = "tablo";
+  try { localStorage.setItem("ambar_mesaj_gorunum", "tablo"); } catch (e) {}
+  bolumAc(cid, "mesajlar", {anahtar}, " · " + ad);
+  aktifSekme().gorunum = "tablo";
+  ciz();
+}
+function raporSayfasi() {}
+
+// ======================================================================= hakkında
+function hakkinda() {
+  const el = document.createElement("div"); el.className = "hakkinda";
+  el.innerHTML = `<div><img src="/icon.png"><h2 style="margin:8px 0 2px">Ambar İnceleme</h2><div style="color:var(--soluk)">Android Veri Alma Aracı · v${esc(D.surum || "")}</div>
+    <p>Ambar ile alınan yedekleri inceleme, arama, etiketleme ve raporlama.</p>
+    <p style="color:var(--soluk);font-size:12px">Tüm veriler yalnızca bu bilgisayarda işlenir. Delil klasörlerine yazılmaz; dizin ve etiketler
+    <code>%LOCALAPPDATA%\\Ambar\\incele</code> içinde tutulur.</p>
+    <p><b>${esc(D.yapimci || "")}</b> · <a href="${esc(D.web || "#")}" target="_blank">${esc((D.web || "").replace(/^https?:\/\//, ""))}</a></p>
+    <button class="dugme ana" onclick="this.closest('.hakkinda').remove()">Kapat</button></div>`;
+  el.onclick = e => e.target === el && el.remove();
+  document.body.appendChild(el);
+}
+
+// ======================================================================= başlat
+D.sekmeler.push({anahtar: "ev", tur: "ev", baslik: "Cihazlar", ikon: "ev", sabit: true});
+D.aktif = "ev";
+ciz();
+</script>
+</body>
+</html>

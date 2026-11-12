@@ -18,3 +18,7 @@ __pycache__/
 # Çalışma logları
 *_log.txt
 *_hata.txt
+
+# Android Agent derleme araçları (JDK, build-tools, android.jar) ve imza anahtarı
+.arac/
+agent/*.apk

@@ -171,7 +171,406 @@ def cihaz_kontrol():
     model = adb("shell", "getprop", "ro.product.model").stdout.strip()
     surum = adb("shell", "getprop", "ro.build.version.release").stdout.strip()
     print(f"Cihaz: {model} (Android {surum}) - seri: {cihazlar[0][0]}")
+    CIHAZ.clear()
+    CIHAZ.update({"model": model, "android": surum, "seri": os.environ.get("ANDROID_SERIAL", cihazlar[0][0])})
     return model or "cihaz"
+
+
+# Son cihaz_kontrol() çağrısında okunan cihaz bilgisi (manifest için)
+CIHAZ: dict = {}
+
+
+def _luhn(n: str) -> bool:
+    t = 0
+    for i, ch in enumerate(reversed(n)):
+        d = int(ch) * (2 if i % 2 else 1)
+        t += d - 9 if d > 9 else d
+    return t % 10 == 0
+
+
+def _parcel_metin(cikti: str):
+    """'service call' çıktısındaki Parcel'den String16 değeri (hata/boşsa None)."""
+    import re
+    kelimeler = [w for h in re.findall(r"0x[0-9a-f]+: ((?:[0-9a-f]{8} ?)+)", cikti or "") for w in h.split()]
+    b = b"".join(bytes.fromhex(w)[::-1] for w in kelimeler)
+    if len(b) < 8 or int.from_bytes(b[:4], "little", signed=True) != 0:
+        return None
+    n = int.from_bytes(b[4:8], "little", signed=True)
+    return b[8:8 + 2 * n].decode("utf-16-le", "replace") if 0 < n < 200 else None
+
+
+def imei_al(ekran=True) -> dict:
+    """Bağlı cihazın IMEI numaraları. 1) IPhoneSubInfo (yalnızca okuma yapan 'get' arayüzü; Android sürümüne
+    göre işlem numarası değişir), 2) olmazsa çevirici ekranında *#06# açılıp ekran metni uiautomator ile okunur.
+    Yalnızca 15 haneli ve Luhn denetimi geçen değerler IMEI kabul edilir."""
+    import re, time
+    bulunan, kaynak = [], None
+
+    def ekle(v, k):
+        nonlocal kaynak
+        for n in re.findall(r"(?<!\d)\d{15}(?!\d)", v or ""):
+            if _luhn(n) and n not in bulunan and n != "0" * 15:
+                bulunan.append(n)
+                kaynak = kaynak or k
+    for yuva in (0, 1, 2):              # getDeviceIdForPhone(phoneId, callingPackage[, featureId])
+        for kod in (4, 3, 5):
+            v = _parcel_metin(adb("shell", f"service call iphonesubinfo {kod} i32 {yuva} s16 com.android.shell s16 null").stdout)
+            if v:
+                ekle(v, "iphonesubinfo")
+                break
+    for kod in (1, 2):                  # getDeviceId(callingPackage) - varsayılan yuva
+        ekle(_parcel_metin(adb("shell", f"service call iphonesubinfo {kod} s16 com.android.shell").stdout), "iphonesubinfo")
+    if not bulunan and ekran:
+        try:
+            adb("shell", "input keyevent KEYCODE_WAKEUP")
+            adb("shell", "am start -a android.intent.action.DIAL")
+            time.sleep(1.5)
+            adb("shell", "input text '*#06#'")
+            time.sleep(2.5)
+            adb("shell", "uiautomator dump /sdcard/ambar_ui.xml")
+            ekle(adb("shell", "cat /sdcard/ambar_ui.xml").stdout, "*#06# ekranı")
+            adb("shell", "rm -f /sdcard/ambar_ui.xml")
+            for _ in range(3):
+                adb("shell", "input keyevent KEYCODE_BACK")
+            adb("shell", "input keyevent KEYCODE_HOME")
+        except Exception:
+            pass
+    return {"imei": bulunan, "kaynak": kaynak}
+
+
+def cihaz_ozellikleri(ekran=True) -> dict:
+    """Cihazın kimlik bilgilerini okur (inceleme programındaki 'Cihaz' paneli için)."""
+    p = lambda k: adb("shell", "getprop", k).stdout.strip()
+    d = {
+        "marka": p("ro.product.manufacturer"),
+        "model": p("ro.product.model"),
+        "ticari_ad": p("ro.product.marketname") or p("ro.product.vendor.marketname"),
+        "cihaz_kodu": p("ro.product.device"),
+        "android": p("ro.build.version.release"),
+        "sdk": p("ro.build.version.sdk"),
+        "guvenlik_yamasi": p("ro.build.version.security_patch"),
+        "yapi": p("ro.build.display.id"),
+        "parmak_izi": p("ro.build.fingerprint"),
+        "saat_dilimi": p("persist.sys.timezone"),
+        "seri": CIHAZ.get("seri", ""),
+        "android_id": adb("shell", "settings get secure android_id").stdout.strip(),
+        "cihaz_adi": adb("shell", "settings get global device_name").stdout.strip(),
+        "yonga": " ".join(x for x in (p("ro.soc.manufacturer"), p("ro.soc.model")) if x) or p("ro.board.platform")
+        or p("ro.hardware.chipname") or p("ro.hardware"),
+    }
+    # Veri alırken işlem başına bir kez (gerekirse *#06# ekranı açılır); ekran=False: yalnızca servis yolu
+    try:
+        if ekran:
+            if "imei" not in CIHAZ:
+                CIHAZ["imei"] = imei_al()
+            im = CIHAZ["imei"]
+        else:
+            im = imei_al(ekran=False)
+    except Exception:
+        im = {"imei": [], "kaynak": None}
+    if im["imei"]:
+        d["imei"] = " / ".join(im["imei"])
+        d["imei_kaynak"] = im["kaynak"]
+    return {k: v for k, v in d.items() if v and v != "null"}
+
+
+def simdi() -> str:
+    return datetime.datetime.now().isoformat(timespec="seconds")
+
+
+def manifest_yaz(oturum: Path, tur: str, ek: dict | None = None, baslangic: str | None = None):
+    """Yedek klasörüne kimlik dosyası (ambar_bilgi.json) yazar; inceleme programı bunu okur.
+    baslangic: veri almanın başladığı an (verilmezse şimdi). Bitiş manifest_bitir() ile eklenir."""
+    import json
+    baslangic = baslangic or simdi()
+    veri = {
+        "ambar_surum": SURUM,
+        "tur": tur,
+        "tarih": baslangic,
+        "baslangic": baslangic,
+        "cihaz": {},
+    }
+    try:
+        veri["cihaz"] = cihaz_ozellikleri() if CIHAZ else {}
+    except Exception as e:   # cihaz bağlı değilse (örn. yerel dosyadan işlem)
+        veri["cihaz_hatasi"] = str(e)
+    if ek:
+        veri.update(ek)
+    (oturum / "ambar_bilgi.json").write_text(json.dumps(veri, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def manifest_bitir(oturum: Path, ek: dict | None = None):
+    """Veri almanın bittiği anı ve süresini manifeste ekler.
+    SHA-256 listesinden ÖNCE çağrılmalı; aksi halde ambar_bilgi.json'un özeti değişir."""
+    import json
+    yol = oturum / "ambar_bilgi.json"
+    try:
+        veri = json.loads(yol.read_text(encoding="utf-8"))
+    except Exception:
+        return
+    veri["bitis"] = simdi()
+    try:
+        veri["sure_sn"] = int((datetime.datetime.fromisoformat(veri["bitis"]) -
+                               datetime.datetime.fromisoformat(veri["baslangic"])).total_seconds())
+    except (KeyError, ValueError):
+        pass
+    if ek:
+        veri.update(ek)
+    yol.write_text(json.dumps(veri, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+# ----------------------------------------------------------------- Çağrı / SMS / MMS kayıtları
+def content_sorgu(uri: str, kolonlar: list[str], where: str | None = None):
+    """
+    'adb shell content query' çıktısını sözlük listesine çevirir.
+    Değerlerde virgül ve satır sonu olabildiği için kolonlar bilinen sırayla eşleştirilir.
+    Erişim izni yoksa None döndürür.
+    """
+    import re
+    komut = f"content query --uri {_q(uri)} --projection {':'.join(kolonlar)}"
+    if where:
+        komut += f' --where "{where}"'
+    r = adb("shell", komut)
+    cikti = (r.stdout or "").replace("\r\n", "\n")
+    if "Error while accessing provider" in cikti or "SecurityException" in cikti:
+        return None
+    desen = re.compile("^" + ", ".join(f"{re.escape(k)}=(.*?)" for k in kolonlar) + r"\s*$", re.S)
+    satirlar = []
+    for parca in re.split(r"(?:^|\n)Row: \d+ ", cikti)[1:]:
+        m = desen.match(parca)
+        if m:
+            satirlar.append({k: (None if v == "NULL" else v) for k, v in zip(kolonlar, m.groups())})
+    return satirlar
+
+
+UYGULAMA_KOMUTLARI = [
+    ("paketler_tum.txt", "pm list packages -f -i -U"),
+    ("paketler_3parti.txt", "pm list packages -3"),
+    ("paketler_surum.txt", "pm list packages -i -U --show-versioncode"),
+    # firstInstallTime / lastUpdateTime / versionName (tek komutta tüm paketler, ~0,5 sn)
+    ("paketler_detay.txt", "dumpsys package packages"),
+]
+
+
+def uygulamalari_al(hedef: Path):
+    for ad, komut in UYGULAMA_KOMUTLARI:
+        (hedef / ad).write_text(adb("shell", komut).stdout, encoding="utf-8")
+
+
+def simgeleri_al(hedef: Path):
+    """Uygulama simgeleri -> hedef/simgeler/<paket>.svg|png|webp (APK'ların tamamı çekilmez)."""
+    import ambar_simge
+    ilerleme(0, "Uygulama simgeleri okunuyor")
+    try:
+        r = ambar_simge.telefondan_simgeler(hedef / "simgeler", ADB, ilerleme=ilerleme)
+        print(f"    {'simgeler':<12} {sum(r.values())} / {len(r)} uygulama (diğerlerinin simgesi yok)")
+    except Exception as e:      # simge alınamazsa diğer veriler etkilenmesin
+        print(f"    {'simgeler':<12} alınamadı: {e}")
+
+
+def kayitlari_al(klasor: Path, uygulamalar: bool = True) -> dict:
+    """Çağrı kaydı, SMS ve MMS'i telefondan okuyup klasor/kayitlar/*.json olarak kaydeder.
+    uygulamalar=True ise uygulama envanteri de kayitlar/ altına yazılır (komple yedek bunu cihaz_bilgisi'ne yazar)."""
+    import json
+    hedef = klasor / "kayitlar"
+    hedef.mkdir(parents=True, exist_ok=True)
+    sayilar = {}
+
+    def yaz(ad, veri):
+        (hedef / f"{ad}.json").write_text(json.dumps(veri, ensure_ascii=False, indent=1), encoding="utf-8")
+        sayilar[ad] = len(veri) if veri is not None else None
+        durum = f"{len(veri)} kayıt" if veri is not None else "ERİŞİM İZNİ YOK"
+        print(f"    {ad:<12} {durum}")
+
+    ilerleme(None, "Çağrı kaydı okunuyor")
+    yaz("cagrilar", content_sorgu("content://call_log/calls",
+        ["_id", "date", "duration", "type", "subscription_id", "countryiso", "geocoded_location", "number", "name"]))
+    ilerleme(None, "SMS okunuyor")
+    sms_kolon = ["_id", "thread_id", "date", "date_sent", "type", "read", "address", "body"]
+    sms = content_sorgu("content://sms", sms_kolon + ["sub_id"])     # sub_id: hangi SIM (eski ROM'larda yok)
+    yaz("sms", sms if sms is not None else content_sorgu("content://sms", sms_kolon))
+
+    ilerleme(None, "MMS okunuyor")
+    mms = content_sorgu("content://mms", ["_id", "thread_id", "date", "msg_box", "read", "sub"])
+    if mms:
+        metinler = {}
+        for p in content_sorgu("content://mms/part", ["mid", "ct", "text"]) or []:
+            if p.get("ct") == "text/plain" and p.get("text"):
+                metinler.setdefault(p["mid"], []).append(p["text"])
+        # Adresler: her MMS için ayrı sorgu çok yavaş (MMS başına ~2 sn). Bunun yerine
+        # konuşma (thread) -> alıcı kimlikleri -> adres eşlemesi iki toplu sorguyla yapılır.
+        adresler = {a["_id"]: a["address"] for a in
+                    content_sorgu("content://mms-sms/canonical-addresses", ["_id", "address"]) or []}
+        konusmalar = {k["_id"]: k.get("recipient_ids") or "" for k in
+                      content_sorgu("content://mms-sms/conversations?simple=true", ["_id", "recipient_ids"]) or []}
+        for m in mms:
+            m["body"] = "\n".join(metinler.get(m["_id"], []))
+            ids = konusmalar.get(m.get("thread_id"), "").split()
+            m["address"] = ", ".join(adresler[i] for i in ids if adresler.get(i)) or None
+    yaz("mms", mms)
+
+    (hedef / "kullanicilar.txt").write_text(adb("shell", "pm list users").stdout, encoding="utf-8")
+    if uygulamalar:
+        ilerleme(None, "Uygulama listesi okunuyor")
+        uygulamalari_al(hedef)
+        print(f"    {'uygulamalar':<12} {(hedef / 'paketler_tum.txt').read_text(encoding='utf-8').count('package:')} paket")
+        simgeleri_al(hedef)
+    ilerleme(None, "Hesaplar okunuyor")
+    print(f"    {'hesaplar':<12} {hesaplari_al(hedef)} hesap")
+    ilerleme(None, "SIM kart okunuyor")
+    try:
+        s = sim_al(hedef)
+        sayilar.update(s)
+        print(f"    {'sim kart':<12} {s['sim_kart']} kayıtlı SIM, {s['sim_rehber']} rehber, {s['sim_sms']} SMS")
+    except Exception as e:      # SIM okunamazsa diğer kayıtlar etkilenmesin
+        print(f"    {'sim kart':<12} okunamadı: {e}")
+    print("    Not: Rehber (kişiler) adb ile okunamaz (READ_CONTACTS izni gerekir);")
+    print("         inceleme programı kişileri çağrı ve mesaj kayıtlarından türetir.")
+    return sayilar
+
+
+# Bazı ROM'lar (ör. MIUI) 'dumpsys account' çıktısında hesap adlarını maskeler (ahmet***5@gmail.com).
+# Aynı adresler başka sistem dökümlerinde açık halde geçer; inceleme programı maskeyi bunlarla çözer.
+HESAP_KAYNAKLARI = [
+    "dumpsys content",
+    "dumpsys activity service com.google.android.gms",
+    "dumpsys jobscheduler",
+    "dumpsys usagestats",
+    "dumpsys backup",
+    "dumpsys package com.google.android.gms",
+]
+_EPOSTA = r"[A-Za-z0-9._%+\-*]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}"
+
+
+def hesaplari_al(hedef: Path) -> int:
+    """hesaplar.txt (dumpsys account, ham) + hesap_kaynaklari.txt (diğer dökümlerdeki e-posta satırları)."""
+    import re
+    ham = adb("shell", "dumpsys account").stdout
+    (hedef / "hesaplar.txt").write_text(ham, encoding="utf-8")
+    satirlar = []
+    for komut in HESAP_KAYNAKLARI:
+        try:
+            cikti = adb("shell", komut).stdout or ""
+        except Exception:
+            continue
+        bulunan = sorted({s.strip() for s in cikti.splitlines() if re.search(_EPOSTA, s)})
+        if bulunan:
+            satirlar.append(f"### {komut}")
+            satirlar += bulunan[:2000]
+    (hedef / "hesap_kaynaklari.txt").write_text("\n".join(satirlar) + "\n", encoding="utf-8")
+    return len(set(re.findall(r"Account \{name=([^,]+), type=([^}]+)\}", ham)))
+
+
+# ----------------------------------------------------------------- SIM kart
+# 'dumpsys isub' takılı SIM'lerle birlikte cihaza daha önce takılmış tüm SIM'lerin kaydını verir
+# (operatör, ICCID, IMSI, numara, ülke...). Android 14+ ICCID/IMSI/numaranın sonunu maskeler ([****]);
+# tam değerler yalnızca root veya operatör yetkisiyle okunabilir.
+SIM_KOMUTLARI = [
+    ("sim_abonelikler.txt", "dumpsys isub"),
+    ("sim_telefon.txt", "dumpsys telephony.registry"),
+    ("sim_sms_servisi.txt", "dumpsys isms"),
+]
+SIM_LISTELERI = ["adn", "fdn", "sdn"]       # rehber, sabit arama, servis numaraları
+
+
+def content_ham(uri: str):
+    """'content query' (projeksiyonsuz) -> (ham çıktı, satır listesi | erişim yoksa None).
+    Kolon adlarını bilmeden ayrıştırır (SIM sağlayıcılarının kolonları üreticiye göre değişir)."""
+    import re
+    r = adb("shell", f"content query --uri {_q(uri)}")
+    cikti = ((r.stdout or "") + (r.stderr or "")).replace("\r\n", "\n")
+    if "Error while accessing provider" in cikti or "Exception" in cikti[:400]:
+        return cikti, None
+    satirlar = []
+    for parca in re.split(r"(?:^|\n)Row: \d+ ", cikti)[1:]:
+        r = {}
+        for alan in re.split(r", (?=[A-Za-z_][A-Za-z0-9_]*=)", parca.rstrip("\n")):
+            k, _, v = alan.partition("=")
+            r[k] = None if v == "NULL" else v
+        satirlar.append(r)
+    return cikti, satirlar
+
+
+def sim_al(hedef: Path) -> dict:
+    """SIM abonelik geçmişi, SIM durumu, SIM rehberi (ADN/FDN/SDN) ve SIM'deki SMS'ler -> hedef/sim_*.txt + sim.json."""
+    import json, re
+    for ad, komut in SIM_KOMUTLARI:
+        (hedef / ad).write_text(adb("shell", komut).stdout or "", encoding="utf-8")
+    ozellik = adb("shell", "getprop").stdout or ""
+    (hedef / "sim_durum.txt").write_text("\n".join(
+        s for s in ozellik.splitlines()
+        if re.match(r"\[(gsm\.|ril\.|persist\.radio\.|ro\.telephony\.|persist\.sys\.(sim|dual)|telephony\.)", s)) + "\n",
+        encoding="utf-8")
+    isub = (hedef / "sim_abonelikler.txt").read_text(encoding="utf-8")
+    idler = sorted(set(re.findall(r"(?:SubscriptionInfoInternal: |\{)id=(\d+)", isub)), key=int)
+
+    ham, rehber, sms, sorgular = [], [], [], {}
+
+    def sorgula(uri, sid, liste=None):
+        metin, satir = content_ham(uri)
+        ham.append(f"### {uri}\n{metin.strip()}\n")
+        sorgular[uri] = None if satir is None else len(satir)
+        for r in satir or []:
+            (rehber if liste else sms).append({"sub_id": sid, **({"liste": liste} if liste else {}), **r})
+
+    for liste in SIM_LISTELERI:
+        sorgula(f"content://icc/{liste}", None, liste)
+        for sid in idler:
+            sorgula(f"content://icc/{liste}/subId/{sid}", sid, liste)
+    sorgula("content://sms/icc", None)
+    for sid in idler:
+        sorgula(f"content://sms/icc_subId/{sid}", sid)
+
+    # Varsayılan URI, varsayılan SIM'in kayıtlarını tekrar döndürür: abonelik numarası bilinen kopya kalsın
+    def tekille(liste, anahtar):
+        bilinen = {anahtar(r) for r in liste if r.get("sub_id")}
+        return [r for r in liste if r.get("sub_id") or anahtar(r) not in bilinen]
+    rehber = tekille(rehber, lambda r: (r.get("liste"), r.get("name"), r.get("number")))
+    sms = tekille(sms, lambda r: (r.get("address"), r.get("date"), r.get("body")))
+
+    (hedef / "sim_sorgular.txt").write_text("\n".join(ham), encoding="utf-8")
+    (hedef / "sim.json").write_text(json.dumps({"alinma": simdi(), "abonelik_idleri": idler, "rehber": rehber,
+                                                "sms": sms, "sorgular": sorgular}, ensure_ascii=False, indent=1),
+                                    encoding="utf-8")
+    durum = re.search(r"\[gsm\.sim\.state\]: \[([^\]]*)\]", ozellik)
+    return {"sim_kart": len(idler), "sim_rehber": len(rehber), "sim_sms": len(sms),
+            "sim_durum": durum.group(1) if durum else ""}
+
+
+def sim_cek(hedef: Path):
+    """Sadece SIM kart bilgilerini alır."""
+    bas = simdi()
+    model = cihaz_kontrol()
+    oturum = hedef / f"{guvenli_ad(model)}_sim_{zaman_damgasi()}"
+    k = oturum / "kayitlar"
+    k.mkdir(parents=True, exist_ok=True)
+    print("\n>>> SIM kart bilgileri okunuyor...")
+    ilerleme(None, "SIM kart okunuyor")
+    s = sim_al(k)
+    print(f"    SIM durumu     : {s['sim_durum'] or '-'}")
+    print(f"    Kayıtlı SIM    : {s['sim_kart']} (takılı ve daha önce takılmış)")
+    print(f"    SIM rehberi    : {s['sim_rehber']} kayıt")
+    print(f"    SIM'deki SMS   : {s['sim_sms']}")
+    manifest_yaz(oturum, "sim", {"kayit_sayilari": s}, baslangic=bas)
+    manifest_bitir(oturum)
+    sha_listesi(oturum)
+    print(f"\nTAMAM: {oturum}")
+    return oturum
+
+
+def kayitlar_cek(hedef: Path):
+    """Sadece çağrı / SMS / MMS kayıtlarını alır."""
+    bas = simdi()
+    model = cihaz_kontrol()
+    oturum = hedef / f"{guvenli_ad(model)}_kayitlar_{zaman_damgasi()}"
+    oturum.mkdir(parents=True, exist_ok=True)
+    print("\n>>> Çağrı ve mesaj kayıtları okunuyor...")
+    sayilar = kayitlari_al(oturum)
+    manifest_yaz(oturum, "kayitlar", {"kayit_sayilari": sayilar}, baslangic=bas)
+    manifest_bitir(oturum)
+    sha_listesi(oturum)
+    print(f"\nTAMAM: {oturum}")
+    return oturum
 
 
 def zaman_damgasi():
@@ -380,8 +779,10 @@ def whatsapp_cek(hedef: Path, kaynak: str | None, sor=True, secici=None):
         else:
             kaynaklar = bulunan[:1]
 
+    bas = simdi()      # klasör seçimi (kullanıcı bekleme) sonrası, çekme başlarken
     oturum = hedef / f"{guvenli_ad(model)}_whatsapp_{zaman_damgasi()}"
     oturum.mkdir(parents=True, exist_ok=True)
+    manifest_yaz(oturum, "whatsapp", {"kaynaklar": kaynaklar}, baslangic=bas)
 
     for k in kaynaklar:
         alt = oturum / guvenli_ad(k.strip("/").replace("/", "_"))
@@ -402,6 +803,7 @@ def whatsapp_cek(hedef: Path, kaynak: str | None, sor=True, secici=None):
             print("    TAMAM")
 
     print(f"\nYedek klasörü: {oturum}")
+    manifest_bitir(oturum)
     oxygen_ziple(oturum)
     return oturum
 
@@ -440,6 +842,7 @@ def sha_listesi(oturum: Path):
     print(f"    {adet} dosya -> {liste.name}")
     return liste
 def komple_yedek(hedef: Path, ab_al=True, sdcard=True, apk=True, ozet=True):
+    bas = simdi()
     model = cihaz_kontrol()
     oturum = hedef / f"{guvenli_ad(model)}_komple_{zaman_damgasi()}"
     oturum.mkdir(parents=True, exist_ok=True)
@@ -450,14 +853,18 @@ def komple_yedek(hedef: Path, ab_al=True, sdcard=True, apk=True, ozet=True):
     bilgi.mkdir(exist_ok=True)
     for ad, komut in [
         ("getprop.txt", "getprop"),
-        ("paketler_tum.txt", "pm list packages -f -i -U"),
-        ("paketler_3parti.txt", "pm list packages -3"),
+        *UYGULAMA_KOMUTLARI,
         ("hesaplar.txt", "dumpsys account"),
+        ("kullanicilar.txt", "pm list users"),
         ("depolama.txt", "df -h"),
         ("tarih.txt", "date"),
     ]:
         (bilgi / ad).write_text(adb("shell", komut).stdout, encoding="utf-8")
+    simgeleri_al(bilgi)
     print("[1/4] Cihaz bilgileri kaydedildi.")
+    print("      Çağrı ve mesaj kayıtları:")
+    kayit_sayilari = kayitlari_al(oturum, uygulamalar=False)
+    manifest_yaz(oturum, "komple", {"kayit_sayilari": kayit_sayilari}, baslangic=bas)
 
     # 1) adb backup
     if ab_al:
@@ -484,7 +891,8 @@ def komple_yedek(hedef: Path, ab_al=True, sdcard=True, apk=True, ozet=True):
             ilerleme(i * 100 / len(paketler), f"APK {i}/{len(paketler)}")
             print(f"    {i}/{len(paketler)} {p}: {tamam}/{len(yollar)} apk")
 
-    # 4) SHA-256 özetleri
+    # 4) SHA-256 özetleri (bitiş zamanı önce yazılır ki manifestin özeti doğru kalsın)
+    manifest_bitir(oturum)
     if ozet:
         sha_listesi(oturum)
 
@@ -517,11 +925,23 @@ def _sha256(p: Path):
 
 def oxygen_ziple(oturum: Path):
     """
-    Çok hesaplı WhatsApp'ta veriler WhatsApp/accounts/<id>/ altında durur ve Oxygen bunları görmez.
-    Her hesap için, o hesabın klasörleri WhatsApp/ köküne alınmış ayrı bir ZIP üretir.
-    Çekilen orijinal klasöre dokunulmaz; düzenleme sadece ZIP içinde yapılır.
+    Çok hesaplı WhatsApp'ta ek hesapların verileri WhatsApp/accounts/<id>/ altında durur ve Oxygen
+    bunları görmez. Her hesap için ayrı ZIP üretir:
+      - ana:        WhatsApp/ kökündeki dosyalar (accounts klasörü hariç)
+      - hesap_<id>: YALNIZCA accounts/<id>/ içindeki dosyalar, ZIP'te WhatsApp/ köküne yerleştirilir
+    Hesapların verileri birbirine karıştırılmaz. Çekilen orijinal klasöre dokunulmaz.
+    SHA256.txt'de kaydı olan (tamamlanmış) ZIP'ler yeniden üretilmez.
     """
     import zipfile
+
+    # Zaten sıkıştırılmış / şifreli dosyalar yeniden sıkıştırılmaz (çok daha hızlı)
+    SIKISMIS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".mp4", ".3gp", ".mkv", ".mov", ".opus",
+                ".mp3", ".m4a", ".aac", ".ogg", ".zip", ".pdf", ".crypt12", ".crypt14", ".crypt15", ".webm"}
+    sha_dosyasi = oturum / "SHA256.txt"
+    tamamlanan = set()
+    if sha_dosyasi.exists():
+        tamamlanan = {s.split("  ", 1)[1].strip() for s in sha_dosyasi.read_text(encoding="utf-8").splitlines()
+                      if "  " in s}
 
     wa_klasorleri = [p for p in oturum.rglob("WhatsApp")
                      if p.is_dir() and p.parent.name != "accounts" and "accounts" not in p.parts]
@@ -540,9 +960,8 @@ def oxygen_ziple(oturum: Path):
         if not hesaplar or ana_msgstore:
             paketler.append(("ana", ana))
         for h in hesaplar:
-            birlesik = dict(ana)                 # ana klasördeki ortak dosyalar
-            birlesik.update(_dosya_listesi(h))   # hesabın dosyaları öncelikli (üzerine yazar)
-            paketler.append((f"hesap_{h.name}", birlesik))
+            # Yalnızca bu hesabın dosyaları: ana hesabın verileri bu pakete KARIŞTIRILMAZ
+            paketler.append((f"hesap_{h.name}", _dosya_listesi(h)))
         if hesaplar:
             print(f"\n{len(hesaplar)} ek hesap bulundu: {', '.join(h.name for h in hesaplar)}")
             if not ana_msgstore:
@@ -550,18 +969,30 @@ def oxygen_ziple(oturum: Path):
 
         for etiket, dosyalar in paketler:
             zip_yolu = oturum / f"{oturum.name}_{etiket}.zip"
+            if zip_yolu.name in tamamlanan and zip_yolu.exists():
+                print(f"\n>>> ZIP zaten tamamlanmış, atlandı: {zip_yolu.name}")
+                uretilen.append(zip_yolu)
+                continue
             msg = sorted(k for k in dosyalar if "msgstore" in k)
-            print(f"\n>>> ZIP: {zip_yolu.name}  ({len(dosyalar)} dosya)")
+            toplam = sum(p.stat().st_size for p in dosyalar.values()) or 1
+            print(f"\n>>> ZIP: {zip_yolu.name}  ({len(dosyalar)} dosya, {boyut_yaz(toplam)})")
             for m in msg:
                 print(f"    WhatsApp/{m}")
             if not msg:
                 print("    UYARI: Bu pakette msgstore veritabanı yok.")
-            with zipfile.ZipFile(zip_yolu, "w", zipfile.ZIP_DEFLATED, allowZip64=True,
+            gecici = zip_yolu.with_suffix(".zip.part")
+            yazilan = 0
+            with zipfile.ZipFile(gecici, "w", zipfile.ZIP_DEFLATED, allowZip64=True,
                                  strict_timestamps=False) as z:
-                for arc, kaynak in sorted(dosyalar.items()):
-                    z.write(kaynak, f"WhatsApp/{arc}")
+                for i, (arc, kaynak) in enumerate(sorted(dosyalar.items()), 1):
+                    tip = zipfile.ZIP_STORED if kaynak.suffix.lower() in SIKISMIS else zipfile.ZIP_DEFLATED
+                    z.write(kaynak, f"WhatsApp/{arc}", compress_type=tip)
+                    yazilan += kaynak.stat().st_size
+                    if i % 200 == 0 or i == len(dosyalar):
+                        ilerleme(yazilan * 100 / toplam, f"ZIP ({etiket}): {boyut_yaz(yazilan)} / {boyut_yaz(toplam)}")
+            gecici.replace(zip_yolu)   # yarım kalan ZIP asla tamamlanmış gibi görünmesin
             ozet = _sha256(zip_yolu)
-            with open(oturum / "SHA256.txt", "a", encoding="utf-8") as f:
+            with open(sha_dosyasi, "a", encoding="utf-8") as f:
                 f.write(f"{ozet}  {zip_yolu.name}\n")
             print(f"    {boyut_yaz(zip_yolu.stat().st_size)}  SHA256: {ozet}")
             uretilen.append(zip_yolu)
@@ -773,12 +1204,17 @@ def yeni_not_yedegi_bekle(sure_sn=900):
 
 
 def notlari_cek(hedef: Path, yerel_bak: Path | None = None, yeni: bool = False):
-    oturum = hedef / f"notlar_{zaman_damgasi()}"
+    bas = simdi()
+    if yerel_bak:
+        CIHAZ.clear()
+        oturum = hedef / f"notlar_{zaman_damgasi()}"
+    else:
+        model = cihaz_kontrol()
+        oturum = hedef / f"{guvenli_ad(model)}_notlar_{zaman_damgasi()}"
     oturum.mkdir(parents=True, exist_ok=True)
     if yerel_bak:
         bak = yerel_bak
     else:
-        cihaz_kontrol()
         if yeni:
             bulunan = [yeni_not_yedegi_bekle()]
         else:
@@ -794,6 +1230,8 @@ def notlari_cek(hedef: Path, yerel_bak: Path | None = None, yeni: bool = False):
         adb("pull", "-a", uzak, str(bak), kontrol=True)
     notlar = miui_notlari_coz(bak)
     notlari_yaz(notlar, oturum / "notlar")
+    manifest_yaz(oturum, "notlar", {"not_sayisi": len(notlar)}, baslangic=bas)
+    manifest_bitir(oturum)
     print(f"\n{len(notlar)} not bulundu:")
     for n, k in enumerate(notlar, 1):
         print(f"  {n}) son değişiklik {k['degistirme']}  ({len(k['metin'])} karakter)")
@@ -815,6 +1253,8 @@ def menu(hedef: Path):
         print("7) Notları (Xiaomi Notlar) çek ve metne çevir")
         print("8) Daha önce çekilmiş WhatsApp yedeğinden Oxygen ZIP'i üret")
         print("9) KOMPLE yedek (adb backup + tüm dahili depolama + APK'lar + SHA-256)")
+        print("s) SIM kart bilgisi (telefondan)")
+        print("u) SIM kart imajı (USB kart okuyucudan)")
         print("0) Çıkış")
         s = input("Seçim: ").strip()
         try:
@@ -841,6 +1281,12 @@ def menu(hedef: Path):
                 notlari_cek(hedef, yeni=c not in ("h", "hayir", "hayır", "n"))
             elif s == "9":
                 komple_yedek(hedef)
+            elif s == "s":
+                sim_cek(hedef)
+            elif s == "u":
+                import ambar_sim, getpass
+                pin = getpass.getpass("SIM PIN (gerekmiyorsa boş bırakın): ").strip() or None
+                ambar_sim.uicc_cek(hedef, pin=pin)
             elif s == "8":
                 yol = input("Yedek klasörü (örn. yedekler\\23117RA68G_whatsapp_...): ").strip().strip('"')
                 if yol:
@@ -873,6 +1319,9 @@ def main():
     t.add_argument("dosya", type=Path)
     t.add_argument("--cikti", type=Path)
 
+    alt.add_parser("kayitlar", help="Çağrı kaydı, SMS ve MMS'i al")
+    i = alt.add_parser("incele", help="Yedekleri inceleme programını aç (tarayıcıda)")
+    i.add_argument("--port", type=int, default=0)
     n = alt.add_parser("notlar", help="Xiaomi Notlar yedeğini çek ve metne çevir")
     n.add_argument("--dosya", type=Path, help="Telefondan çekmek yerine yereldeki .bak dosyasını çöz")
     n.add_argument("--yeni", action="store_true",
@@ -889,6 +1338,10 @@ def main():
 
     a = ap.parse_args()
 
+    if a.komut == "incele":
+        import ambar_incele
+        ambar_incele.calistir(a.hedef, port=a.port)
+        return
     if a.komut == "oxygen":
         oxygen_ziple(a.klasor)
         return
@@ -907,6 +1360,8 @@ def main():
         whatsapp_cek(a.hedef, a.kaynak)
     elif a.komut == "notlar":
         notlari_cek(a.hedef, yeni=a.yeni)
+    elif a.komut == "kayitlar":
+        kayitlar_cek(a.hedef)
     elif a.komut == "komple":
         komple_yedek(a.hedef, ab_al=not a.ab_yok, sdcard=not a.sdcard_yok,
                      apk=not a.apk_yok, ozet=not a.ozet_yok)
