@@ -4,7 +4,8 @@ Ambar Agent APK'sını derler (Gradle / Android Studio gerekmez).
 
   javac (JDK 17) -> d8 (dex) -> aapt2 link (manifest) -> classes.dex eklenir -> zipalign -> apksigner
 
-Araçlar yoksa <proje>/.arac/ altına indirilir (Microsoft OpenJDK 17, Android build-tools 34, android-34 platformu).
+Araçlar makinede kuruluysa (JAVA_HOME / ANDROID_HOME - GitHub Actions dahil) onlar kullanılır; yoksa
+<proje>/.arac/ altına indirilir (Microsoft OpenJDK 17, Android build-tools 34, android-34 platformu).
 İmza anahtarı ilk derlemede .arac/agent_imza.jks olarak üretilir ve depoya eklenmez.
 Çıktı: agent/ambar_agent.apk
 """
@@ -29,20 +30,76 @@ INDIR = [("jdk", "https://aka.ms/download-jdk/microsoft-jdk-17-windows-x64.zip")
 SIFRE = "ambaragent"        # yalnızca yerel imza deposu için (anahtar depoya girmez)
 
 
+def _kurulu_jdk():
+    """Makinede kurulu JDK (javac + keytool). GitHub Actions: JAVA_HOME_17_X64."""
+    adaylar = [os.environ.get(e) for e in ("JAVA_HOME_17_X64", "JAVA_HOME_21_X64", "JAVA_HOME")]
+    for y in adaylar:
+        if y and (Path(y) / "bin" / "javac.exe").exists() and (Path(y) / "bin" / "keytool.exe").exists():
+            return Path(y) / "bin"
+    return None
+
+
+def _kurulu_sdk():
+    """Makinede kurulu Android SDK'dan (build-tools, platform). GitHub Actions: ANDROID_HOME."""
+    for e in ("ANDROID_HOME", "ANDROID_SDK_ROOT"):
+        kok = os.environ.get(e)
+        if not kok:
+            continue
+        sdk = Path(kok)
+        btler = [p for p in sorted(sdk.glob("build-tools/*"), key=lambda p: p.name)
+                 if (p / "aapt2.exe").exists() and (p / "zipalign.exe").exists()
+                 and (p / "lib" / "d8.jar").exists() and (p / "lib" / "apksigner.jar").exists()]
+        jarlar = sorted(sdk.glob("platforms/android-*/android.jar"),
+                        key=lambda p: int("".join(c for c in p.parent.name[8:] if c.isdigit()) or 0))
+        if btler and jarlar:
+            return btler[-1], jarlar[-1]
+    return None, None
+
+
+def _indir(url, hedef: Path):
+    """Araç arşivini indirir (bazı CDN'ler User-Agent'sız isteği reddediyor; birkaç kez dener)."""
+    istek = urllib.request.Request(url, headers={"User-Agent": "Ambar-agent-build"})
+    son = None
+    for deneme in range(3):
+        try:
+            with urllib.request.urlopen(istek, timeout=120) as y, open(hedef, "wb") as f:
+                shutil.copyfileobj(y, f)
+            return
+        except Exception as e:                      # ağ hatası / geçici 5xx
+            son = e
+            print(f"  indirme başarısız ({deneme + 1}/3): {type(e).__name__}: {e}", flush=True)
+    raise RuntimeError(f"İndirilemedi: {url}\n{son}")
+
+
 def araclar():
+    """(jdk_bin, build_tools, android_jar). Kurulu araçlar varsa onlar kullanılır, yoksa .arac/ altına indirilir."""
+    jbin = _kurulu_jdk()
+    bt, jar = _kurulu_sdk()
+    if jbin:
+        print(f"JDK (kurulu): {jbin}", flush=True)
+    if bt:
+        print(f"build-tools (kurulu): {bt}\nandroid.jar (kurulu): {jar}", flush=True)
+
+    gerekli = []
+    if not jbin:
+        gerekli.append("jdk")
+    if not bt:
+        gerekli += ["build-tools", "platform"]
     for ad, url in INDIR:
-        if not (ARAC / ad).is_dir():
-            print(f"İndiriliyor: {url}")
+        if ad in gerekli and not (ARAC / ad).is_dir():
+            print(f"İndiriliyor: {url}", flush=True)
             ARAC.mkdir(exist_ok=True)
             z = ARAC / f"{ad}.zip"
-            urllib.request.urlretrieve(url, z)
+            _indir(url, z)
             with zipfile.ZipFile(z) as f:
                 f.extractall(ARAC / ad)
             z.unlink()
-    jdk = next((ARAC / "jdk").iterdir())
-    bt = next((ARAC / "build-tools").iterdir())
-    jar = next((ARAC / "platform").glob("*/android.jar"))
-    return jdk / "bin", bt, jar
+    if not jbin:
+        jbin = next((ARAC / "jdk").iterdir()) / "bin"
+    if not bt:
+        bt = next((ARAC / "build-tools").iterdir())
+        jar = next((ARAC / "platform").glob("*/android.jar"))
+    return jbin, bt, jar
 
 
 def calis(*komut, **kw):

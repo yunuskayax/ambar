@@ -33,11 +33,11 @@ jobs:
           }
           $kod = $LASTEXITCODE
           if ($hata -or -not (Test-Path dist/Ambar.exe)) {
-            if ($hata) { Write-Output "::error::build.ps1 hatası: $hata" }
-            Write-Output "::error::build.ps1 başarısız (son çıkış kodu $kod). Son satırlar:"
-            Get-Content derleme.log -Tail 25 | ForEach-Object {
-              Write-Output ("::error::" + ($_ -replace '%', '%25' -replace "`r", '' -replace "`n", ' '))
-            }
+            # GitHub adım başına en çok 10 ek açıklama gösterir: günlüğün sonunu TEK
+            # ek açıklamada topla (%0A = satır sonu).
+            $son = (Get-Content derleme.log -Tail 40) -join "%0A"
+            $son = $son -replace '%(?!0A)', '%25' -replace "`r", ''
+            Write-Output "::error::build.ps1 başarısız (hata: $hata, son çıkış kodu $kod)%0A%0A$son"
             exit 1
           }
 
