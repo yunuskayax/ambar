@@ -130,6 +130,7 @@ def main():
         calis(bt / "zipalign.exe", "-f", "-p", "4", g / "ham.apk", g / "hizali.apk")
         anahtar = ARAC / "agent_imza.jks"
         if not anahtar.exists():
+            ARAC.mkdir(parents=True, exist_ok=True)     # araçlar indirilmediyse klasör henüz yoktur
             calis(keytool, "-genkeypair", "-keystore", anahtar, "-alias", "ambar", "-keyalg", "RSA", "-keysize", "2048",
                   "-validity", "10000", "-storepass", SIFRE, "-keypass", SIFRE, "-dname", "CN=Ambar Agent, O=Ambar")
         calis(java, "-jar", bt / "lib" / "apksigner.jar", "sign", "--ks", anahtar, "--ks-pass", f"pass:{SIFRE}",
