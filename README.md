@@ -10,7 +10,7 @@ Android telefonlardan ADB ile tek tıkla veri alın: telefonun içindeki her şe
 
 Dahili depolama · Rehber, takvim, MMS ekleri ve tüm dosyalar (Agent) · WhatsApp (çoklu hesap, Oxygen uyumlu) · SIM / UICC · Xiaomi Notlar · APK'lar · SHA-256
 
-![Sürüm](https://img.shields.io/badge/sürüm-2.0.0-f59e0b)
+![Sürüm](https://img.shields.io/badge/sürüm-2.0.1-f59e0b)
 ![Platform](https://img.shields.io/badge/platform-Windows-3b82f6)
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776ab)
 
