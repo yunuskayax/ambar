@@ -8,7 +8,7 @@
 
 Android telefonlardan ADB ile tek tıkla veri alın: telefonun içindeki her şey düzenli, doğrulanabilir ve dokunulmamış halde ambarınızda.
 
-Dahili depolama · WhatsApp (çoklu hesap, Oxygen uyumlu) · Xiaomi Notlar · APK'lar · SHA-256
+Dahili depolama · Rehber, takvim ve MMS ekleri (Agent) · WhatsApp (çoklu hesap, Oxygen uyumlu) · SIM / UICC · Xiaomi Notlar · APK'lar · SHA-256
 
 ![Sürüm](https://img.shields.io/badge/sürüm-1.0.0-f59e0b)
 ![Platform](https://img.shields.io/badge/platform-Windows-3b82f6)
@@ -27,7 +27,33 @@ Windows 10 / 11 · Kurulum gerekmez · Tek dosya
 ---
 
 <p align="center">
-  <img src="docs/ekran_goruntusu.png" width="760" alt="Ana ekran">
+  <img src="docs/ekran_goruntusu.png" width="820" alt="Masaüstü">
+</p>
+
+## Program arayüzü
+
+Soldaki menü programın tamamını kapsar, üstteki yol çubuğu nerede olduğunuzu gösterir, sağ üstteki nokta ise cihazın bağlı olup olmadığını.
+
+| Sayfa | İçerik |
+|---|---|
+| **Masaüstü** | Bağlı cihaz, Yöntemler ve Araçlar kısayolları ile favori kartlarınız |
+| **Bağlı cihaz** | Telefonun üretici, model, Android sürümü, IMEI, seri no, yonga seti, güvenlik yaması gibi bilgileri ve doğrudan o cihazdan veri alma kartları |
+| **Cihazlar** | Bağlı cihaz, yedeklerde görülen cihazlar ve marka profilleri; her biri için hangi yöntemlerin desteklendiği listelenir |
+| **Yöntemler** | Tüm veri alma yöntemleri; Tümü / Android / Diğer sekmeleri, ızgara veya liste görünümü |
+| **Araçlar** | Yedekleri İncele, Oxygen ZIP Üret, .ab → .tar ve kayıt klasörü |
+| **Favoriler** | Kartların köşesindeki ☆ ile eklediğiniz yöntemler; Masaüstünde de görünür |
+| **İşlem günlüğü** | Çalışan işlemin canlı çıktısı. Alt çubuktaki ilerleme çubuğu ve "Günlüğü göster" bağlantısı her sayfadan erişilebilir |
+| **Ayarlar** | Kayıt klasörü, favorileri sıfırlama, sürüm / adb / ayar dosyası bilgileri |
+| **Hakkında** | Sürüm bilgisi ve güncelleme denetimi |
+
+<p align="center">
+  <img src="docs/yontemler.png" width="820" alt="Yöntemler sayfası">
+</p>
+
+Bir yöntem kartına tıklandığında işlem hemen başlamaz. Önce yöntemin ne yaptığı, gereksinimleri, çıkarma yolu (Gezgin görünümlü klasör seçici) ve hedef sürücüdeki kullanılabilir alan aynı sayfada gösterilir; telefon bağlı değilse uyarı verilir. İşlem, sayfanın altındaki eylem kartıyla başlar.
+
+<p align="center">
+  <img src="docs/yontem_sayfasi.png" width="820" alt="Komple Yedek yöntem sayfası">
 </p>
 
 ## Özellikler
@@ -43,7 +69,8 @@ Windows 10 / 11 · Kurulum gerekmez · Tek dosya
 | **WhatsApp Yedeği** | `com.whatsapp` klasörünü otomatik bulur ve dosya tarihlerini koruyarak çeker. Çoklu hesapta her hesap için ayrı, **Oxygen Forensic** ile açılabilen ZIP üretir |
 | **Güncel Notlar** | Telefonda MIUI yedekleme ekranını açar, yeni not yedeğini otomatik algılar ve notları `notlar.txt` / `notlar.json` olarak kaydeder |
 | **Mevcut Not Yedeği** | Telefondaki en son MIUI not yedeğini (`Notlar(com.miui.notes).bak`) çeker ve çözer |
-| **adb backup** | Klasik `.ab` yedeği; tam cihaz veya tek paket |
+| **adb backup (tam)** | Klasik `.ab` yedeği; telefonda onay gerekir |
+| **Paket Yedeği** | Tek bir uygulamanın `.ab` yedeği |
 | **Oxygen ZIP Üret** | Daha önce çekilmiş bir WhatsApp klasöründen hesap başına ZIP oluşturur |
 | **.ab → .tar** | Şifresiz `.ab` dosyasını açılabilir `.tar` arşivine çevirir |
 
@@ -54,8 +81,6 @@ Ek olarak:
 - **Cihaz durumu:** Bağlı, izin bekliyor veya bağlı değil durumları renkle gösterilir.
 - **IMEI:** Bağlı cihazın IMEI numaraları (çift SIM'de ikisi de) root olmadan okunur ve her yedeğin cihaz bilgisine yazılır. Önce telefonun abone bilgisi servisi denenir; olmazsa `*#06#` ekranı açılıp ekrandaki metin okunur. Yalnızca 15 haneli ve Luhn denetimini geçen değerler kabul edilir.
 - **Uygulama simgeleri ve adları:** Yüklü uygulamaların kendi simgeleri ve (varsa Türkçe) görünen adları APK'nın tamamı çekilmeden, telefondaki `unzip` ile yalnızca kaynak tablosu ve simge dosyaları okunarak alınır. Klasik, uyarlanabilir (adaptive) ve vektör simgeler desteklenir; inceleme ekranında ve portable raporda gösterilir.
-- **Cihazlar sayfası:** Bağlı cihaz, yedeklerde görülen cihazlar ve marka profilleri için hangi yöntemlerin desteklendiği listelenir; düğmeye basınca ilgili yöntem açılır.
-- **Oxygen düzeninde yöntem sayfaları:** Her yöntemin açıklaması, gereksinimleri, çıkarma yolu (Gezgin görünümlü klasör seçici) ve kullanılabilir alan, işlem başlamadan aynı sayfada gösterilir.
 - **Dokunulmayan orijinal kopya:** Çekilen klasörler hiç değiştirilmez. Oxygen için gereken düzenleme yalnızca ZIP'in içinde yapılır.
 
 ## Yedekleri inceleme
@@ -114,7 +139,7 @@ Raporlar\
 1. **[Ambar.exe'yi indirin](https://github.com/yunuskayax/ambar/releases/latest/download/Ambar.exe).** Eski sürümler [Releases](../../releases) sayfasındadır.
 2. İndirdiğiniz dosyayı bir klasöre (örneğin `Belgeler\Ambar`) taşıyın ve çift tıklayın.
 
-Python, Android SDK veya adb kurmanız gerekmez; hepsi programın içindedir. Yedekler exe'nin bulunduğu klasördeki `yedekler\` klasörüne kaydedilir. Kayıt yerini arayüzden değiştirebilirsiniz.
+Python, Android SDK veya adb kurmanız gerekmez; hepsi programın içindedir. Yedekler exe'nin bulunduğu klasördeki `yedekler\` klasörüne kaydedilir. Kayıt yerini **Ayarlar** sayfasından ya da her yöntem sayfasındaki **Çıkarma yolu** kutusundan değiştirebilirsiniz.
 
 > **"Windows bilgisayarınızı korudu" uyarısı:** Program dijital olarak imzalanmadığı için Windows SmartScreen ilk açılışta bu uyarıyı gösterebilir. **Ek bilgi → Yine de çalıştır** seçeneğine tıklayın. Dosyanın değiştirilmediğini, Releases sayfasındaki `Ambar.exe.sha256` özetiyle karşılaştırarak doğrulayabilirsiniz:
 >
@@ -145,7 +170,7 @@ Ek Python paketi gerekmez; yalnızca standart kütüphane (tkinter dahil) kullan
 3. Telefonu USB kablosuyla bağlayın, USB modunu **Dosya aktarımı** yapın.
 4. Telefonda çıkan **"USB hata ayıklamaya izin verilsin mi?"** penceresini onaylayın.
 
-Programın sağ üst köşesindeki nokta yeşile döndüğünde telefon hazırdır.
+Programın sağ üst köşesindeki cihaz göstergesi yeşile döndüğünde telefon hazırdır; **Bağlı cihaz** sayfasında telefonun bilgileri görünür.
 
 ## Komut satırı kullanımı
 
