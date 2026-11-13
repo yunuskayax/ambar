@@ -21,7 +21,7 @@ KOK = Path(__file__).resolve().parent.parent
 ARAC = KOK / ".arac"
 AGENT = KOK / "agent"
 CIKTI = AGENT / "ambar_agent.apk"
-SURUM_KODU, SURUM_ADI = 1, "1.0"
+SURUM_KODU, SURUM_ADI = 2, "2.0"
 MIN_SDK, HEDEF_SDK = 21, 34
 INDIR = [("jdk", "https://aka.ms/download-jdk/microsoft-jdk-17-windows-x64.zip"),
          ("build-tools", "https://dl.google.com/android/repository/build-tools_r34-windows.zip"),

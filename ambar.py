@@ -33,7 +33,7 @@ import time
 
 UYGULAMA_ADI = "Ambar"
 ALT_BASLIK = "Android Veri Alma Aracı"
-SURUM = "1.0.0"
+SURUM = "2.0.0"
 YAPIMCI = "Yunus Kaya"
 WEB = "https://yunuskaya.com.tr"
 GITHUB = "https://github.com/yunuskayax/ambar"
@@ -1320,6 +1320,9 @@ def main():
     t.add_argument("--cikti", type=Path)
 
     alt.add_parser("kayitlar", help="Çağrı kaydı, SMS ve MMS'i al")
+    g = alt.add_parser("agent", help="Ambar Agent ile çıkarma (rehber, takvim, MMS ekleri, uygulamalar)")
+    g.add_argument("--dosyalar", action="store_true",
+                   help="Telefondaki tüm dosyaları da çek (Android 11+: telefonda izin onayı gerekir)")
     i = alt.add_parser("incele", help="Yedekleri inceleme programını aç (tarayıcıda)")
     i.add_argument("--port", type=int, default=0)
     n = alt.add_parser("notlar", help="Xiaomi Notlar yedeğini çek ve metne çevir")
@@ -1362,6 +1365,9 @@ def main():
         notlari_cek(a.hedef, yeni=a.yeni)
     elif a.komut == "kayitlar":
         kayitlar_cek(a.hedef)
+    elif a.komut == "agent":
+        import ambar_agent
+        ambar_agent.agent_cek(a.hedef, dosyalar=a.dosyalar)
     elif a.komut == "komple":
         komple_yedek(a.hedef, ab_al=not a.ab_yok, sdcard=not a.sdcard_yok,
                      apk=not a.apk_yok, ozet=not a.ozet_yok)

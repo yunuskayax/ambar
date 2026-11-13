@@ -111,7 +111,7 @@ class Uygulama(tk.Tk):
                          "E8BD", "#22a559", None),
             "kayitlar": ("Çağrı ve Mesajlar", "Çağrı kaydı, SMS ve MMS'i hızlıca alır",
                          "E717", "#0ea5e9", None),
-            "agent": ("Android Agent", "Rehber, takvim, MMS ekleri ve tüm uygulamalar (geçici ajan uygulamasıyla)",
+            "agent": ("Android Agent", "Rehber, takvim, MMS ekleri, uygulamalar ve onayla tüm dosyalar",
                       "E9F5", "#0d2340", None),
             "uicc": ("SIM Kart İmajı (UICC)", "Kart okuyucudaki SIM'in dosya sistemini çıkarır",
                      "E875", "#ea580c", None),
@@ -655,6 +655,11 @@ class Uygulama(tk.Tk):
                           "Cihazı uçak moduna almanız önerilir (veri çıkarma USB üzerinden yapılır, internet gerekmez).",
                           "Okunanlar: rehber (kişi fotoğraflarıyla), takvim, çağrı kaydı, SMS, MMS ve ekleri, tüm "
                           "uygulamaların gerçek adları ve simgeleri, hesaplar, eşleşmiş Bluetooth cihazları.",
+                          "'Tüm dosyaları da çıkart' seçilirse telefonda 'Tüm dosyalara erişim' izin ekranı açılır. "
+                          "Listeden Ambar Agent'ı seçip izni açın; dahili bellekteki ve takılı SD karttaki tüm "
+                          "dosyalar USB üzerinden alınır. İzin verilmezse çıkarma yalnızca kayıtlarla sürer.",
+                          "Android 11 ve sonrasında Android/data ve Android/obb klasörleri bu izinle de okunamaz; "
+                          "işletim sistemi engeller.",
                           "Ambar Agent'ın internet izni yoktur; veri yalnızca USB kablosu üzerinden, her oturumda "
                           "değişen bir anahtarla aktarılır. Telefondaki hiçbir veri değiştirilmez."],
                 uyarilar=["İşlem bitince Ambar Agent telefondan otomatik olarak kaldırılır.",
@@ -663,6 +668,8 @@ class Uygulama(tk.Tk):
                 telefon=True, eylemler=[
                     ("Kullanıcı verilerini USB üzerinden çıkarın", "Kullanıcı verilerinin cihazdan çıkarılması", "E9F5",
                      lambda h: __import__("ambar_agent").agent_cek(h)),
+                    ("Tüm dosyaları da çıkart", "Kullanıcı verileri + telefondaki tüm dosyalar (telefonda onay gerekir)",
+                     "E8B7", lambda h: __import__("ambar_agent").agent_cek(h, dosyalar=True)),
                     ("Ambar Agent'ı telefondan kaldırın", "Önceki bir işlemden kalan ajan uygulamasını siler", "E74D",
                      lambda h: print("Ambar Agent " + ("kaldırıldı." if "Success" in (core.adb("uninstall", "com.ambar.agent").stdout or "")
                                                        else "telefonda kurulu değil."))) ])

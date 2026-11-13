@@ -8,7 +8,7 @@ Yalnızca programda gerçekten uygulanmış yöntemler listelenir; yeni yöntem 
 # anahtar: (düğme yazısı, kısa açıklama)
 YONTEM_KISA = {
     "komple": ("Komple", "Depolama + kayıtlar + adb backup + APK"),
-    "agent": ("Android Agent", "Rehber, takvim, MMS ekleri, uygulamalar (ajan uygulaması)"),
+    "agent": ("Android Agent", "Rehber, takvim, MMS ekleri, uygulamalar, onayla tüm dosyalar (ajan uygulaması)"),
     "kayitlar": ("Kayıtlar", "Çağrı, SMS, MMS, hesaplar, SIM geçmişi"),
     "whatsapp": ("WhatsApp", "WhatsApp klasörü ve Oxygen ZIP"),
     "sim": ("SIM bilgisi", "Takılı ve eski SIM kayıtları"),

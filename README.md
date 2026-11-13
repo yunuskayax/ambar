@@ -8,9 +8,9 @@
 
 Android telefonlardan ADB ile tek tıkla veri alın: telefonun içindeki her şey düzenli, doğrulanabilir ve dokunulmamış halde ambarınızda.
 
-Dahili depolama · Rehber, takvim ve MMS ekleri (Agent) · WhatsApp (çoklu hesap, Oxygen uyumlu) · SIM / UICC · Xiaomi Notlar · APK'lar · SHA-256
+Dahili depolama · Rehber, takvim, MMS ekleri ve tüm dosyalar (Agent) · WhatsApp (çoklu hesap, Oxygen uyumlu) · SIM / UICC · Xiaomi Notlar · APK'lar · SHA-256
 
-![Sürüm](https://img.shields.io/badge/sürüm-1.0.0-f59e0b)
+![Sürüm](https://img.shields.io/badge/sürüm-2.0.0-f59e0b)
 ![Platform](https://img.shields.io/badge/platform-Windows-3b82f6)
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776ab)
 
@@ -62,7 +62,8 @@ Bir yöntem kartına tıklandığında işlem hemen başlamaz. Önce yöntemin n
 |---|---|
 | **Yedekleri İncele** | Alınan yedekleri tarayıcıda açan inceleme programı: cihaz bilgisi, çağrılar, mesajlar, kişiler, dosyalar, fotoğraf/video galerisi, zaman çizelgesi, istatistik, genel arama, delil etiketleme ve yazdırılabilir rapor |
 | **Komple Yedek** | Cihaz bilgileri, çağrı kaydı, SMS/MMS, `adb backup`, tüm dahili depolama (`/sdcard`), yüklü uygulamaların APK'ları ve tüm dosyaların SHA-256 özet listesi |
-| **Android Agent** | Telefona geçici olarak kurulan küçük bir ajan uygulamasıyla (`com.ambar.agent`, 16 KB) adb'nin tek başına okuyamadığı verileri çıkarır: **rehber** (kişi fotoğrafları, e-posta, kurum, adres, not, doğum günü, hesap), **takvim** (katılımcı ve hatırlatmalarla), çağrı kaydı, SMS, **MMS ekleri**, tüm uygulamaların gerçek adları ve simgeleri, hesaplar, eşleşmiş Bluetooth cihazları. İzinler `adb install -g` ile kurulumda verilir; ajanın internet izni yoktur, veri yalnızca USB üzerinden (adb yönlendirmesi + oturum anahtarı) aktarılır. İşlem sonunda ajan telefondan kaldırılır. Ham sağlayıcı satırları `agent/ham/*.jsonl` olarak saklanır |
+| **Android Agent** | Telefona geçici olarak kurulan küçük bir ajan uygulamasıyla (`com.ambar.agent`, 20 KB) adb'nin tek başına okuyamadığı verileri çıkarır: **rehber** (kişi fotoğrafları, e-posta, kurum, adres, not, doğum günü, hesap), **takvim** (katılımcı ve hatırlatmalarla), çağrı kaydı, SMS, **MMS ekleri**, tüm uygulamaların gerçek adları ve simgeleri, hesaplar, eşleşmiş Bluetooth cihazları. İzinler `adb install -g` ile kurulumda verilir; ajanın internet izni yoktur, veri yalnızca USB üzerinden (adb yönlendirmesi + oturum anahtarı) aktarılır. İşlem sonunda ajan telefondan kaldırılır. Ham sağlayıcı satırları `agent/ham/*.jsonl` olarak saklanır |
+| **Android Agent → tüm dosyalar** | Aynı ajanla, **telefonda verilen onayla**, dahili bellekteki ve takılı SD karttaki **tüm dosyalar** çekilir. Ayrıntı: [Tüm dosyaları ajanla çekme](#tüm-dosyaları-ajanla-çekme) |
 | **Çağrı ve Mesajlar** | Yalnızca çağrı kaydı, SMS ve MMS'i saniyeler içinde alır |
 | **SIM Kart İmajı (UICC)** | USB SIM / akıllı kart okuyucudaki (PC/SC, CCID) kartın dosya sistemini çıkarır: ICCID, IMSI, kendi numarası, operatör, rehber (ADN ve USIM telefon defteri), FDN/SDN, son aranan numaralar, SIM'deki SMS'ler, son konum (LOCI/PSLOCI/EPSLOCI), yasaklı / tercih edilen ağlar. 2G SIM ve 3G/4G USIM desteklenir. Kart yalnızca okunur; PIN'in kalan deneme hakkı 1 ise PIN gönderilmez. Tüm komutlar `uicc_apdu.txt`'e kaydedilir |
 | **SIM Bilgisi (telefondan)** | Telefona takılı ve daha önce takılmış tüm SIM kartların kaydı (operatör, numara, ICCID, IMSI, Wi-Fi arama), SIM rehberi ve SIM SMS'leri. İnceleme ekranında çağrı ve mesajların hangi SIM'den yapıldığı gösterilir |
@@ -82,6 +83,36 @@ Ek olarak:
 - **IMEI:** Bağlı cihazın IMEI numaraları (çift SIM'de ikisi de) root olmadan okunur ve her yedeğin cihaz bilgisine yazılır. Önce telefonun abone bilgisi servisi denenir; olmazsa `*#06#` ekranı açılıp ekrandaki metin okunur. Yalnızca 15 haneli ve Luhn denetimini geçen değerler kabul edilir.
 - **Uygulama simgeleri ve adları:** Yüklü uygulamaların kendi simgeleri ve (varsa Türkçe) görünen adları APK'nın tamamı çekilmeden, telefondaki `unzip` ile yalnızca kaynak tablosu ve simge dosyaları okunarak alınır. Klasik, uyarlanabilir (adaptive) ve vektör simgeler desteklenir; inceleme ekranında ve portable raporda gösterilir.
 - **Dokunulmayan orijinal kopya:** Çekilen klasörler hiç değiştirilmez. Oxygen için gereken düzenleme yalnızca ZIP'in içinde yapılır.
+
+## Tüm dosyaları ajanla çekme
+
+Android Agent yöntemindeki **Tüm dosyaları da çıkart** kartı (veya `python ambar.py agent --dosyalar`), kullanıcı
+verilerinin yanında telefondaki **tüm dosyaları** da ajan üzerinden alır.
+
+1. Ajan kurulur ve kayıtlar (rehber, takvim, çağrı, SMS/MMS, uygulamalar) her zamanki gibi çıkarılır.
+2. **Telefonda "Tüm dosyalara erişim" ekranı açılır.** Listeden **Ambar Agent**'ı seçip izni açın; program onayı
+   bekler ve izin verilir verilmez kendiliğinden devam eder (varsayılan bekleme 5 dakika).
+3. Depolama kökleri (dahili bellek ve varsa takılı SD kart) listelenir, her dosya USB üzerinden tek tek çekilir.
+
+<p align="center">
+  <img src="docs/yontem_agent.png" width="820" alt="Android Agent yöntem sayfası">
+</p>
+
+| Çıktı | İçerik |
+|---|---|
+| `sdcard/` | Dahili belleğin kopyası (klasör yapısı ve dosya değişim tarihleri korunur) |
+| `depolama_<kart>/` | Takılı SD kartın kopyası |
+| `agent/ham/dosyalar.jsonl` | Telefondaki tüm dosya ve klasörlerin listesi (yol, boyut, değişim zamanı, okunamayanlar dahil) |
+| `cekilemeyenler.txt` | İzin verilmediği veya okunamadığı için alınamayan öğeler |
+| `SHA256_tum_dosyalar.txt` | Alınan tüm dosyaların SHA-256 özetleri |
+
+- Dosya listesi **izin verilmese de** alınabildiği kadar çıkarılır; okunamayan her öğe nedeniyle birlikte kaydedilir.
+- Aktarım yarıda kalırsa işlem yeniden çalıştırılabilir: boyutu tutan dosyalar atlanır, kalanlar çekilir.
+- Her dosya boyutuyla doğrulanır; eksik aktarılan dosya kaydedilmez, `cekilemeyenler.txt`'ye yazılır.
+- **Sınır:** Android 11 ve sonrasında `Android/data` ve `Android/obb` klasörleri bu izinle de okunamaz; işletim
+  sistemi tüm uygulamalara kapatmıştır. Bu klasörler için `adb backup` veya root gerekir.
+- Dahili depolamayı yalnızca adb ile (ajan kurmadan) almak için **Komple Yedek** yöntemi kullanılabilir; ajanla
+  çekme, adb'nin okuyamadığı dosyalar ve kullanıcı onayıyla erişilen alanlar için vardır.
 
 ## Yedekleri inceleme
 
@@ -178,6 +209,8 @@ Programın sağ üst köşesindeki cihaz göstergesi yeşile döndüğünde tele
 python ambar.py incele                 # yedekleri inceleme programını aç (tarayıcıda)
 python ambar.py komple                 # çağrı/mesaj + adb backup + tüm /sdcard + APK'lar + SHA-256
 python ambar.py kayitlar               # yalnızca çağrı kaydı, SMS ve MMS
+python ambar.py agent                  # Ambar Agent: rehber, takvim, MMS ekleri, uygulamalar
+python ambar.py agent --dosyalar       # ajanla kayıtlar + telefondaki tüm dosyalar (telefonda onay gerekir)
 python ambar.py whatsapp               # com.whatsapp klasörünü bul, çek, Oxygen ZIP üret
 python ambar.py whatsapp --kaynak /sdcard/Yedek/com.whatsapp
 python ambar.py notlar --yeni          # telefonda güncel not yedeği aldır, sonra çek
@@ -206,6 +239,11 @@ yedekler/
 │   ├── sdcard_Android_media_com.whatsapp/   orijinal kopya
 │   ├── <...>_hesap_1001.zip                 Oxygen'e verilecek dosya
 │   └── SHA256.txt
+├── <model>_agent_<tarih>/
+│   ├── kayitlar/                 rehber.json, takvim.json, cagrilar.json, sms.json, mms.json
+│   ├── agent/ham/                ham sağlayıcı satırları ve dosyalar.jsonl (dosya listesi)
+│   ├── sdcard/                   --dosyalar ile: dahili belleğin tamamı
+│   └── cekilemeyenler.txt
 └── notlar_<tarih>/
     ├── notlar.txt
     ├── notlar.json

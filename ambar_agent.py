@@ -5,6 +5,10 @@ Android Agent - telefona geçici olarak kurulan Ambar Agent uygulamasıyla veri 
 adb'nin kendi yetkisiyle okunamayan verileri (rehber, takvim, kişi fotoğrafları, MMS ekleri, tüm uygulamaların
 gerçek adları ve simgeleri, eşleşmiş Bluetooth cihazları) uygulama izniyle okur.
 
+Telefondaki TÜM dosyalar da (dahili bellek ve takılı SD kart) ajan üzerinden çekilebilir. Bunun için Android 11 ve
+sonrasında kullanıcının telefonda "Tüm dosyalara erişim" iznini onaylaması gerekir: ajan izin ekranını açar,
+bilgisayar onay verilene kadar bekler. İzin verilmezse yalnızca okunabilen dosyalar alınır.
+
 Akış:
   1. adb install -r -g ambar_agent.apk   (-g: izinler kurulumda verilir, telefonda tek tek onay gerekmez)
   2. am start ... --es anahtar <rastgele>  (telefonda "Ambar Agent - veri aktarılıyor" ekranı görünür)
@@ -15,6 +19,7 @@ Akış:
 Ajanın internet izni yoktur; veri yalnızca USB kablosu üzerinden çıkar. Telefondaki hiçbir veri değiştirilmez.
 """
 import json
+import os
 import secrets
 import socket
 import struct
@@ -131,6 +136,49 @@ class Agent:
             return b""
         return b"".join(parca)
 
+    def dosya_izni(self, iste=False) -> dict:
+        """Telefondaki "tüm dosyalara erişim" izninin durumu; iste=True ise telefonda izin ekranını açar."""
+        y = self.json(f"dosya_izni {'iste' if iste else 'durum'}")
+        return y[0] if y else {}
+
+    def dosya_indir(self, uzak: str, yerel: Path) -> tuple[int, str | None]:
+        """Tek dosyayı ajandan indirir. (yazilan_bayt, hata) döndürür; hatada dosya oluşturulmaz."""
+        yerel.parent.mkdir(parents=True, exist_ok=True)
+        gecici = yerel.with_name(yerel.name + ".ambar_parca")
+        baslik, yazilan = None, 0
+        try:
+            with open(gecici, "wb") as f:
+                for c in self.cerceveler(f"dosya {uzak}"):
+                    if baslik is None:                      # ilk çerçeve: JSON başlık
+                        try:
+                            baslik = json.loads(c.decode("utf-8", "replace"))
+                        except ValueError:
+                            baslik = {}
+                        if "_hata" in baslik:
+                            return 0, baslik["_hata"]
+                        continue
+                    f.write(c)
+                    yazilan += len(c)
+        except Exception as e:
+            gecici.unlink(missing_ok=True)
+            raise e
+        beklenen = int((baslik or {}).get("b", -1))
+        if beklenen >= 0 and yazilan > beklenen:            # sonda hata çerçevesi gelmiş olabilir
+            with open(gecici, "r+b") as f:
+                f.truncate(beklenen)
+            yazilan = beklenen
+        if beklenen >= 0 and yazilan < beklenen:
+            gecici.unlink(missing_ok=True)
+            return 0, f"eksik aktarıldı ({yazilan}/{beklenen} bayt)"
+        gecici.replace(yerel)
+        t = int((baslik or {}).get("t", 0))
+        if t > 0:
+            try:
+                os.utime(yerel, (t / 1000, t / 1000))
+            except OSError:
+                pass
+        return yazilan, None
+
     def bitir(self):
         try:
             if self.sok:
@@ -162,8 +210,124 @@ def _b64(v):
     return base64.b64decode(v[7:]) if isinstance(v, str) and v.startswith("base64:") else None
 
 
-def agent_cek(hedef: Path):
-    """Android Agent ile çıkarma. Çıktı: <model>_agent_<zaman>/ (kayitlar/, agent/ham/, rehber_fotograflari/, mms_ekleri/)."""
+def izin_bekle(ag: Agent, bekleme=300) -> bool:
+    """Telefonda "Tüm dosyalara erişim" iznini ister ve onaylanmasını bekler."""
+    d = ag.dosya_izni()
+    if d.get("izin"):
+        return True
+    if int(d.get("sdk", 0)) < 30:
+        return bool(d.get("izin"))          # Android 10 ve öncesi: izin kurulumda verilir
+    print("\n>>> TELEFONA BAKIN: 'Tüm dosyalara erişim' ekranı açılıyor.")
+    print("    Listeden 'Ambar Agent'ı seçip izni AÇIN; çıkarma kendiliğinden sürecek.")
+    d = ag.dosya_izni(iste=True)
+    if not d.get("ekran"):
+        print("    UYARI: izin ekranı açılamadı. Telefonda Ayarlar > Uygulamalar > Ambar Agent >")
+        print("           'Tüm dosyalara erişim' iznini elle açabilirsiniz.")
+    son = time.time() + bekleme
+    while time.time() < son:
+        time.sleep(2)
+        if ag.dosya_izni().get("izin"):
+            print("    İzin verildi, dosyalar okunacak.")
+            return True
+        core.ilerleme(None, f"Telefonda izin bekleniyor ({int(son - time.time())} sn)")
+    print("    İzin verilmedi; yalnızca ajanın okuyabildiği dosyalar alınacak.")
+    return False
+
+
+def _kok_klasor(kok: dict) -> str:
+    """Telefondaki depolama kökü -> yedek içindeki klasör adı."""
+    if kok.get("birincil") or kok.get("yol", "").rstrip("/").endswith("/emulated/0"):
+        return "sdcard"
+    return "depolama_" + core.guvenli_ad(kok.get("ad") or Path(kok.get("yol", "kart")).name)
+
+
+def dosyalari_cek(ag: Agent, oturum: Path, bekleme=300) -> dict:
+    """
+    Telefondaki tüm dosyaları ajan üzerinden çeker (kullanıcı onayı gerekir).
+
+    Çıktı: <oturum>/sdcard/... (ve varsa depolama_<kart>/...), dosya listesi agent/ham/dosyalar.jsonl,
+    alınamayanlar cekilemeyenler.txt. Zaten çekilmiş ve boyutu aynı olan dosyalar atlanır.
+    """
+    izin = izin_bekle(ag, bekleme)
+    kokler = [k for k in ag.json("kokler") if "_hata" not in k]
+    if not kokler:
+        print("    UYARI: depolama kökü bulunamadı, dosyalar alınamıyor.")
+        return {"izin": izin, "dosya": 0, "bayt": 0, "alinamayan": 0}
+
+    ham = oturum / "agent" / "ham"
+    ham.mkdir(parents=True, exist_ok=True)
+    hatalar, toplam_dosya, toplam_bayt, atlanan = [], 0, 0, 0
+    listeler = []                                   # (kok, klasor, [(uzak, rel, boyut)])
+    with open(ham / "dosyalar.jsonl", "w", encoding="utf-8") as idx:
+        for kok in kokler:
+            yol, klasor = kok["yol"].rstrip("/"), _kok_klasor(kok)
+            core.ilerleme(None, f"Agent: {yol} listeleniyor")
+            print(f">>> {yol} listeleniyor...")
+            dosyalar, klasor_sayi, bayt = [], 0, 0
+            for e in ag.json(f"liste {yol}"):
+                if "_hata" in e:
+                    hatalar.append(f"{yol}  ({e['_hata']})")
+                    continue
+                e["kok"] = yol
+                idx.write(json.dumps(e, ensure_ascii=False) + "\n")
+                rel = e.get("y") or ""
+                if e.get("d"):
+                    klasor_sayi += 1
+                    if e.get("h"):
+                        hatalar.append(f"{yol}/{rel}/  ({e['h']})")
+                    continue
+                if e.get("h"):
+                    hatalar.append(f"{yol}/{rel}  ({e['h']})")
+                    continue
+                b = int(e.get("b") or 0)
+                dosyalar.append((f"{yol}/{rel}", rel, b))
+                bayt += b
+            print(f"    {len(dosyalar)} dosya, {klasor_sayi} klasör, {core.boyut_yaz(bayt)}")
+            listeler.append((yol, klasor, dosyalar))
+            toplam_bayt += bayt
+            toplam_dosya += len(dosyalar)
+
+    print(f">>> Toplam {toplam_dosya} dosya ({core.boyut_yaz(toplam_bayt)}) çekiliyor...")
+    alinan_bayt, alinan, son_bildirim = 0, 0, 0.0
+    for yol, klasor, dosyalar in listeler:
+        kok_hedef = oturum / klasor
+        for uzak, rel, boyut in dosyalar:
+            yerel = kok_hedef / rel
+            try:
+                if yerel.exists() and yerel.stat().st_size == boyut:
+                    atlanan += 1
+                    alinan_bayt += boyut
+                    continue
+                n, hata = ag.dosya_indir(uzak, yerel)
+            except AgentHatasi:
+                raise
+            except OSError as e:                     # Windows'ta geçersiz ad, uzun yol vb.
+                n, hata = 0, str(e)[:120]
+            if hata:
+                hatalar.append(f"{uzak}  ({hata})")
+            else:
+                alinan += 1
+                alinan_bayt += n
+            if time.time() - son_bildirim > 1:
+                son_bildirim = time.time()
+                y = min(99.0, alinan_bayt * 100 / toplam_bayt) if toplam_bayt else None
+                core.ilerleme(y, f"Agent: dosyalar {core.boyut_yaz(alinan_bayt)} / {core.boyut_yaz(toplam_bayt)}")
+    if hatalar:
+        with open(oturum / "cekilemeyenler.txt", "a", encoding="utf-8") as f:
+            f.write("\n".join(hatalar) + "\n")
+        print(f"    UYARI: {len(hatalar)} öğe alınamadı. Liste: cekilemeyenler.txt")
+    print(f"    {alinan} dosya alındı" + (f", {atlanan} dosya zaten vardı" if atlanan else "")
+          + f" ({core.boyut_yaz(alinan_bayt)})")
+    return {"izin": izin, "dosya": alinan, "atlanan": atlanan, "bayt": alinan_bayt,
+            "listelenen": toplam_dosya, "alinamayan": len(hatalar)}
+
+
+def agent_cek(hedef: Path, dosyalar: bool = False):
+    """
+    Android Agent ile çıkarma. Çıktı: <model>_agent_<zaman>/ (kayitlar/, agent/ham/, rehber_fotograflari/, mms_ekleri/).
+
+    dosyalar=True ise telefondaki tüm dosyalar da çekilir (Android 11+ : telefonda kullanıcı onayı gerekir).
+    """
     bas = core.simdi()
     model = core.cihaz_kontrol()
     oturum = hedef / f"{core.guvenli_ad(model)}_agent_{core.zaman_damgasi()}"
@@ -248,6 +412,8 @@ def agent_cek(hedef: Path):
                 (oturum / "agent" / f"{ad}.json").write_text(json.dumps(s, ensure_ascii=False, indent=1), encoding="utf-8")
                 print(f"    {ad:<14} {len(s)}")
         core.hesaplari_al(k)
+        if dosyalar:
+            sayilar["dosyalar"] = dosyalari_cek(ag, oturum)
     finally:
         core.ilerleme(95, "Ambar Agent kaldırılıyor")
         kaldirildi = ag.bitir()
