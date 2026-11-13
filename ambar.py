@@ -33,7 +33,7 @@ import time
 
 UYGULAMA_ADI = "Ambar"
 ALT_BASLIK = "Android Veri Alma Aracı"
-SURUM = "2.0.1"
+SURUM = "2.0.2"
 YAPIMCI = "Yunus Kaya"
 WEB = "https://yunuskaya.com.tr"
 GITHUB = "https://github.com/yunuskayax/ambar"
