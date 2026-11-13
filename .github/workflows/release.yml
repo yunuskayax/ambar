@@ -4,6 +4,7 @@ name: Sürüm yayınla
 on:
   push:
     tags: ["v*"]
+    branches: ["ci-deneme"]      # yalnızca derlemeyi denemek için; sürüm yayınlanmaz
   workflow_dispatch:
 
 permissions:
