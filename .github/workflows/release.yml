@@ -21,7 +21,33 @@ jobs:
 
       - name: Ambar.exe derle
         shell: pwsh
-        run: ./build.ps1
+        run: |
+          # Çıktı hem akışa hem derleme.log'a yazılır; hata olursa son satırlar
+          # ::error:: olarak işaretlenir (log indirme yetkisi olmayanlar da görebilsin).
+          $ErrorActionPreference = "Continue"
+          $hata = $null
+          try {
+            ./build.ps1 *>&1 | Tee-Object -FilePath derleme.log
+          } catch {
+            $hata = $_.Exception.Message
+          }
+          $kod = $LASTEXITCODE
+          if ($hata -or -not (Test-Path dist/Ambar.exe)) {
+            if ($hata) { Write-Output "::error::build.ps1 hatası: $hata" }
+            Write-Output "::error::build.ps1 başarısız (son çıkış kodu $kod). Son satırlar:"
+            Get-Content derleme.log -Tail 25 | ForEach-Object {
+              Write-Output ("::error::" + ($_ -replace '%', '%25' -replace "`r", '' -replace "`n", ' '))
+            }
+            exit 1
+          }
+
+      - name: Derleme günlüğünü sakla
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: derleme-gunlugu
+          path: derleme.log
+          if-no-files-found: ignore
 
       - name: Release oluştur ve exe'yi yükle
         if: startsWith(github.ref, 'refs/tags/')
